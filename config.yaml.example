@@ -1,0 +1,23 @@
+# Example config for local installs.
+# Prefer: `ticketmosquito init` (writes ~/.ticketmosquito/config.yaml).
+#
+# Data directory: ~/.ticketmosquito/  (override with TICKETMOSQUITO_DATA_DIR or --data-dir)
+
+database:
+  driver: sqlite
+  path: ticketmosquito.db
+
+storage:
+  base_path: ~/.ticketmosquito/saved
+
+session:
+  # Generate: openssl rand -base64 32
+  encryption_key: ""
+  file_path: ~/.ticketmosquito/session.enc
+
+# browser:
+#   path: /usr/bin/chromium   # optional; CHROMIUM_PATH env overrides this
+
+mcp:
+  port: 11043
+  host: "127.0.0.1"

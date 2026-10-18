@@ -1,0 +1,10 @@
+/ticketmosquito
+*.db
+*.db-shm
+*.db-wal
+/dist/
+.DS_Store
+*.enc
+node_modules/
+chrome-extension/dist/
+firefox-extension/dist/

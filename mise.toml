@@ -1,0 +1,6 @@
+[tools]
+go = "1.26.5"
+
+# Prefer this file over idiomatic go.mod `go` / `toolchain` reads (mise deprecation).
+[settings]
+idiomatic_version_file_disable_files = ["go:go.mod"]

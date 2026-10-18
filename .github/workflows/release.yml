@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Run unit tests
+        run: go test -race ./...
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: darwin
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: linux
+            goarch: amd64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          name="ticketmosquito-${GOOS}-${GOARCH}"
+          if [ "$GOOS" = "windows" ]; then
+            name="${name}.exe"
+          fi
+          mkdir -p dist
+          CGO_ENABLED=0 go build \
+            -ldflags "-s -w -X github.com/infomosquitos/ticketmosquito/internal/cliapp.Version=${VERSION}" \
+            -o "dist/${name}" \
+            ./cmd/ticketmosquito
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ticketmosquito-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/ticketmosquito-*
+
+  build-extensions:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            chrome-extension/package-lock.json
+            firefox-extension/package-lock.json
+
+      - name: Build extension packages
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          chmod +x scripts/build-extension-zips.sh
+          ./scripts/build-extension-zips.sh "$VERSION" dist
+
+      - name: Upload extension artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: ticketmosquito-extensions
+          path: dist/ticketmosquito-*.zip
+
+  release:
+    needs: [build, build-extensions]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: dist
+        run: |
+          sha256sum ticketmosquito-* > SHA256SUMS || shasum -a 256 ticketmosquito-* > SHA256SUMS
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ticketmosquito-*
+            dist/SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "Ticket Mosquito",
+  "version": "0.1.0",
+  "description": "Capture Jira session cookies for TicketMosquito",
+  "permissions": [
+    "cookies",
+    "storage",
+    "activeTab",
+    "tabs"
+  ],
+  "icons": {
+    "16": "assets/icon-inactive-16.png",
+    "32": "assets/icon-inactive-32.png",
+    "48": "assets/icon-inactive-48.png",
+    "128": "assets/icon-inactive-128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ticket@mosqui.to",
+      "strict_min_version": "109.0"
+    }
+  },
+  "host_permissions": [
+    "<all_urls>",
+    "http://localhost:11043/*",
+    "http://127.0.0.1:11043/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; style-src 'self'; object-src 'self'; connect-src 'self' http://localhost:11043 http://127.0.0.1:11043"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Ticket Mosquito",
+    "default_icon": {
+      "16": "assets/icon-inactive-16.png",
+      "32": "assets/icon-inactive-32.png"
+    }
+  }
+}
