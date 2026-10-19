@@ -20,6 +20,6 @@ Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Hosted session capture fixed (5 cookies / CHIPS). Popup alert after revalidate was a DOM id mismatch (`page-host` vs `issue-host`); HTML aligned + null-guards.
-- Reload extension from `dist/` after rebuild.
+- Hosted session + single-issue refresh OK. Project crawl failed: stored URL `/browse/SK` was not parsed (only `/browse/KEY-N`); ParseProjectRef now accepts project-only browse URLs; crawl job failures are logged.
+- Reload extension from `dist/` after rebuild; restart `make serve` for crawl fix.
 - Shipped `extension-three-tab-parity`; Homebrew spikes / v0.1.0 still open.

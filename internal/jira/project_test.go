@@ -11,8 +11,10 @@ func TestParseProjectRef(t *testing.T) {
 		{"PROJ", "PROJ", ""},
 		{"PROJ-12", "PROJ", "PROJ-12"},
 		{"https://acme.atlassian.net/browse/ABC-9", "ABC", "ABC-9"},
+		{"https://jira.example.com/browse/SK", "SK", ""},
 		{"https://jira.example.com/jira/projects/ENG", "ENG", ""},
 		{"https://jira.example.com/jira/browse/ENG-1", "ENG", "ENG-1"},
+		{"https://jira.example.com/browse/ENG/", "ENG", ""},
 	}
 	for _, tc := range tests {
 		p, i, err := ParseProjectRef(tc.in)

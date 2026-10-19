@@ -8,14 +8,17 @@ import (
 )
 
 var (
-	issueKeyRe  = regexp.MustCompile(`(?i)^([A-Z][A-Z0-9]+)-(\d+)$`)
-	browseRe    = regexp.MustCompile(`(?i)/browse/([A-Z][A-Z0-9]+-\d+)`)
-	projectsRe  = regexp.MustCompile(`(?i)/projects?/([A-Z][A-Z0-9]+)(?:/|$)`)
-	bareKeyRe   = regexp.MustCompile(`(?i)^[A-Z][A-Z0-9]+$`)
+	issueKeyRe      = regexp.MustCompile(`(?i)^([A-Z][A-Z0-9]+)-(\d+)$`)
+	browseIssueRe   = regexp.MustCompile(`(?i)/browse/([A-Z][A-Z0-9]+-\d+)(?:/|$)`)
+	browseProjectRe = regexp.MustCompile(`(?i)/browse/([A-Z][A-Z0-9]+)(?:/|$)`)
+	projectsRe      = regexp.MustCompile(`(?i)/projects?/([A-Z][A-Z0-9]+)(?:/|$)`)
+	bareKeyRe       = regexp.MustCompile(`(?i)^[A-Z][A-Z0-9]+$`)
 )
 
 // ParseProjectRef extracts a project key from a URL or bare key.
 // issueKey is set when the input is an issue URL or KEY-N.
+// Project landing URLs like /browse/PROJ (no issue number) are accepted —
+// that is the form BrowseURL writes into the projects table.
 func ParseProjectRef(raw string) (projectKey, issueKey string, err error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -34,9 +37,12 @@ func ParseProjectRef(raw string) (projectKey, issueKey string, err error) {
 		return "", "", fmt.Errorf("invalid project url or key %q", raw)
 	}
 	path := u.Path
-	if m := browseRe.FindStringSubmatch(path); m != nil {
+	if m := browseIssueRe.FindStringSubmatch(path); m != nil {
 		full := strings.ToUpper(m[1])
 		return strings.Split(full, "-")[0], full, nil
+	}
+	if m := browseProjectRe.FindStringSubmatch(path); m != nil {
+		return strings.ToUpper(m[1]), "", nil
 	}
 	if m := projectsRe.FindStringSubmatch(path); m != nil {
 		return strings.ToUpper(m[1]), "", nil

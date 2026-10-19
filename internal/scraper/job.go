@@ -28,19 +28,19 @@ const (
 
 // CrawlJob is an in-memory async project crawl.
 type CrawlJob struct {
-	ID           string     `json:"id"`
-	ProjectURL   string     `json:"project_url"`
-	Force        bool       `json:"force"`
-	Status       JobStatus  `json:"status"`
-	Progress     int        `json:"progress"`
-	TotalIssues  int        `json:"total_issues"`
-	Completed    int        `json:"completed"`
-	Failed       int        `json:"failed"`
-	Error        string     `json:"error,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	StartedAt    *time.Time `json:"started_at,omitempty"`
-	CompletedAt  *time.Time `json:"completed_at,omitempty"`
+	ID          string     `json:"id"`
+	ProjectURL  string     `json:"project_url"`
+	Force       bool       `json:"force"`
+	Status      JobStatus  `json:"status"`
+	Progress    int        `json:"progress"`
+	TotalIssues int        `json:"total_issues"`
+	Completed   int        `json:"completed"`
+	Failed      int        `json:"failed"`
+	Error       string     `json:"error,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+	StartedAt   *time.Time `json:"started_at,omitempty"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
 }
 
 // JobSnapshot is a list+counts view for GET /api/crawl.
@@ -233,11 +233,18 @@ func (m *CrawlJobManager) finishJob(job *CrawlJob, err error, stats *Stats) {
 		job.Error = err.Error()
 		now := time.Now()
 		job.CompletedAt = &now
+		m.log.Errorw("crawl job failed", "job_id", job.ID, "project_url", job.ProjectURL, "error", err)
 		return
 	}
 	job.Status = JobStatusCompleted
 	now := time.Now()
 	job.CompletedAt = &now
+	m.log.Infow("crawl job completed",
+		"job_id", job.ID,
+		"project_url", job.ProjectURL,
+		"discovered", job.TotalIssues,
+		"completed", job.Completed,
+		"failed", job.Failed)
 }
 
 // Cleanup removes finished jobs from memory.
