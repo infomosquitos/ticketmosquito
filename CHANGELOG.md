@@ -4,6 +4,10 @@ All notable changes to this project. Format based on [Keep a Changelog](https://
 
 ## [Unreleased]
 
+### Fixed
+
+- Server start crash
+
 ## [0.1.0] - 2026-10-18
 
 ### Added
