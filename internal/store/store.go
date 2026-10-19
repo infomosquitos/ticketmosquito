@@ -15,6 +15,8 @@ type Store interface {
 	UpsertProject(ctx context.Context, key, name, url string) (uuid.UUID, error)
 	GetProjectByKey(ctx context.Context, key string) (*Project, error)
 	ListProjects(ctx context.Context) ([]Project, error)
+	DeleteProject(ctx context.Context, key string) error
+	CountIssuesByProjectKey(ctx context.Context, key string) (int, error)
 	TouchProjectCrawl(ctx context.Context, key string, issuesTotal int, lastCrawled time.Time) error
 
 	UpsertIssue(ctx context.Context, issue *Issue) error

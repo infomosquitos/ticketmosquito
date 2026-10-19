@@ -113,6 +113,15 @@ func ResolveBrowser() (string, error) {
 	return filepath.Join(dir, "browser"), nil
 }
 
+// ResolveCronConfig returns the per-project cron overrides JSON path.
+func ResolveCronConfig() (string, error) {
+	dir, err := ResolveDataDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "cron-config.json"), nil
+}
+
 // ResolveMigrations returns the migrations root directory (contains sqlite/).
 func ResolveMigrations() (string, error) {
 	if path := os.Getenv(EnvMigrationsDir); path != "" {

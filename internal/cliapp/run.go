@@ -366,9 +366,11 @@ Usage:
   ticketmosquito version
 
 HTTP (with serve):
+  GET/POST /api/projects           list / add projects
+  POST /api/crawl                  start project crawl job
+  GET  /api/issues/{KEY}           get issue; …/compare, …/refresh
   GET  /api/search?q=…&project=…   FTS search
-  GET  /api/issues/{KEY}           get issue Markdown + metadata
-  GET  /api/projects               list crawled projects
+  GET  /api/cron*                  scheduled crawls
   POST /mcp                        MCP Streamable HTTP (jira_* tools)
 
 Environment:

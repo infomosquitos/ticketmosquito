@@ -98,6 +98,30 @@ func (d *DB) ListProjects(ctx context.Context) ([]store.Project, error) {
 	return out, rows.Err()
 }
 
+// DeleteProject removes a project and cascaded issues.
+func (d *DB) DeleteProject(ctx context.Context, key string) error {
+	res, err := d.sql.ExecContext(ctx, `DELETE FROM projects WHERE key = ?`, key)
+	if err != nil {
+		return err
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return store.ErrNotFound
+	}
+	return nil
+}
+
+// CountIssuesByProjectKey returns how many issues are stored for a project.
+func (d *DB) CountIssuesByProjectKey(ctx context.Context, key string) (int, error) {
+	var n int
+	err := d.sql.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM issues i
+		 JOIN projects p ON p.id = i.project_id
+		 WHERE p.key = ?`, key,
+	).Scan(&n)
+	return n, err
+}
+
 // TouchProjectCrawl updates last_crawled and issues_total.
 func (d *DB) TouchProjectCrawl(ctx context.Context, key string, issuesTotal int, lastCrawled time.Time) error {
 	res, err := d.sql.ExecContext(ctx,

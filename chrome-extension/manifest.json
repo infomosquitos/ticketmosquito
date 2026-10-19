@@ -20,6 +20,19 @@
     "http://localhost:11043/*",
     "http://127.0.0.1:11043/*"
   ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.atlassian.net/*",
+        "*://*/*/browse/*",
+        "*://*/*/projects/*",
+        "*://*/*/jira/*",
+        "*://*/*selectedIssue=*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; style-src 'self'; object-src 'self'; connect-src 'self' http://localhost:11043 http://127.0.0.1:11043 https: http:"
   },

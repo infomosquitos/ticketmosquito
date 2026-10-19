@@ -56,10 +56,12 @@ func (h *CatalogHandler) Search(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetIssue handles GET /api/issues/{key}
-func (h *CatalogHandler) GetIssue(w http.ResponseWriter, r *http.Request) {
-	key := strings.TrimPrefix(r.URL.Path, "/api/issues/")
-	key = strings.Trim(key, "/")
+// GetIssueByKey handles GET /api/issues/{key}
+func (h *CatalogHandler) GetIssueByKey(w http.ResponseWriter, r *http.Request) {
+	key := strings.TrimSpace(r.PathValue("key"))
+	if key == "" {
+		key = strings.Trim(strings.TrimPrefix(r.URL.Path, "/api/issues/"), "/")
+	}
 	if key == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "issue key is required"})
 		return
@@ -75,19 +77,6 @@ func (h *CatalogHandler) GetIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, search.ToIssueDetail(iss, h.cfg.MCP.ExposeInternalIDs))
-}
-
-// ListProjects handles GET /api/projects
-func (h *CatalogHandler) ListProjects(w http.ResponseWriter, r *http.Request) {
-	projects, err := h.db.ListProjects(r.Context())
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"count":    len(projects),
-		"projects": search.ToProjectSummaries(projects),
-	})
 }
 
 // Stats handles GET /api/search/stats

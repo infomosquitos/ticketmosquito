@@ -4,11 +4,11 @@ Last updated: 2026-10-19
 
 ## Current focus
 
-Post-MVP distribution planning — Homebrew tap drafted (spikes first).
+Post-MVP — three-tab extension parity shipped; Homebrew spikes still open.
 
 ## Active task
 
-_None — next candidate: `spike-homebrew-tap-formula` or `spike-extension-coinstall` (both backlog)._
+_None — next candidate: `spike-homebrew-tap-formula` / `spike-extension-coinstall`, or `upgrade-extensions-typescript-7` (after parity)._
 
 ## Blockers
 
@@ -16,9 +16,10 @@ Parent `homebrew-tap-distribution` blocked_by both spikes (OQs open).
 
 ## Next action
 
-Run spikes and lock OQs before implementing the tap / extension CLI.
+Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Hosted Jira validate: only `JSESSIONID` on jira host (wp NetScaler cookies unrelated). Capture aligned with SpaceMosquito (hostname-only + partitionKey/storeId); host-scoped cookies; browser UA/Referer; `/rest/auth/1/session`; extension browser-jar probe logged as `browser-side session probe`.
-- Drafted `homebrew-tap-distribution` + spikes (task docs only); `upgrade-extensions-typescript-7`; v0.1.0 changelog still uncommitted/untagged.
+- Shipped `extension-three-tab-parity`: HTTP projects CRUD, async crawl jobs, issue compare/refresh, cron; Chrome+Firefox Issue/Projects/Settings popups (SM paste-adapt); cookie dedupe; install guide updated.
+- Hosted Jira session validate works; do TS7 upgrade after this (OQ9).
+- v0.1.0 changelog still uncommitted/untagged.

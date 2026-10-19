@@ -32,7 +32,7 @@ TICKETMOSQUITO_DATA_DIR=./data ./ticketmosquito serve
 
 1. Start the server: `./ticketmosquito serve`
 2. Load the Ticket Mosquito extension ([from source](docs/guides/extension-install.md) or a release package).
-3. Open Jira (Cloud or Server/DC) and use the extension to send cookies to `http://127.0.0.1:11043`.
+3. Open Jira (Cloud or Server/DC), click the **Session** chip to capture + validate, then use **Projects** to add a project and start a crawl (or use the CLI below).
 
 ## Crawl a project
 

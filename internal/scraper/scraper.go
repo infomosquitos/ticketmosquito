@@ -17,6 +17,9 @@ import (
 	"github.com/infomosquitos/ticketmosquito/pkg/logging"
 )
 
+// ProgressFn reports crawl progress (completed includes skips; total is discovered).
+type ProgressFn func(completed, total, failed int)
+
 // Scraper crawls Jira projects/issues via REST (API-only; no browser fallback).
 type Scraper struct {
 	db       store.Store
@@ -24,6 +27,7 @@ type Scraper struct {
 	encKey   string
 	writer   *storage.Writer
 	force    bool
+	progress ProgressFn
 	log      logging.Sugar
 }
 
@@ -34,6 +38,9 @@ func New(db store.Store, sessions *session.Store, encKey string, writer *storage
 
 // SetForce enables full refresh (ignore updated skip).
 func (s *Scraper) SetForce(force bool) { s.force = force }
+
+// SetProgress registers an optional progress callback for CrawlProject.
+func (s *Scraper) SetProgress(fn ProgressFn) { s.progress = fn }
 
 // Stats summarizes a crawl run.
 type Stats struct {
@@ -81,17 +88,26 @@ func (s *Scraper) CrawlProject(ctx context.Context, projectRef string) (*Stats, 
 		}
 		if skip {
 			stats.Skipped++
+			if s.progress != nil {
+				s.progress(stats.Fetched+stats.Skipped, stats.Discovered, stats.Failed)
+			}
 			continue
 		}
 		if err := s.fetchAndStore(ctx, client, projectID, projectKey, siteURL, ref.Key); err != nil {
 			stats.Failed++
 			s.log.Errorw("issue crawl failed", "key", ref.Key, "error", err)
+			if s.progress != nil {
+				s.progress(stats.Fetched+stats.Skipped, stats.Discovered, stats.Failed)
+			}
 			if jira.IsUnauthorized(err) {
 				return stats, err
 			}
 			continue
 		}
 		stats.Fetched++
+		if s.progress != nil {
+			s.progress(stats.Fetched+stats.Skipped, stats.Discovered, stats.Failed)
+		}
 	}
 
 	_ = s.db.TouchProjectCrawl(ctx, projectKey, len(refs), time.Now().UTC())
@@ -263,6 +279,11 @@ func ensureFlavor(sess *session.Session) *session.Session {
 }
 
 func newJiraClient(sess *session.Session, log logging.Sugar) (*jira.Client, error) {
+	return ClientFromSession(sess, log)
+}
+
+// ClientFromSession builds a REST client from a captured session.
+func ClientFromSession(sess *session.Session, log logging.Sugar) (*jira.Client, error) {
 	return jira.NewClient(jira.ClientConfig{
 		APIBase: sess.APIBase(),
 		Server:  sess.Flavor == session.FlavorServer,

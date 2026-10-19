@@ -10,37 +10,83 @@
   <div class="popup">
     <header class="header">
       <div class="logo">
-        <img class="icon" src="assets/icon.svg" width="24" height="24" alt="">
+        <img class="mosquito-icon" src="assets/icon.svg" width="24" height="24" alt="">
         <span class="title">Ticket Mosquito</span>
       </div>
-      <span id="session-dot" class="status-dot checking" title="Session"></span>
+      <button type="button" id="session-chip" class="session-chip" title="Session is invalid or missing">
+        <span id="session-dot" class="status-dot checking"></span>
+        <span class="session-chip-label">Session</span>
+      </button>
     </header>
 
-    <div id="backend-banner" class="banner hidden">
-      Backend unreachable at <span id="backend-host"></span>
+    <div id="backend-banner" class="backend-banner hidden" role="status" aria-live="polite">
+      <strong>Backend unreachable</strong>
+      <span id="backend-banner-url"></span>
     </div>
 
-    <section class="block">
-      <p class="host" id="page-host">—</p>
-      <p class="hint" id="page-hint">Open a Jira tab to capture a session.</p>
-    </section>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="issue">Issue</button>
+      <button class="tab-btn" data-tab="projects">Projects</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </nav>
 
-    <section class="block actions">
-      <button type="button" id="btn-capture" class="btn primary" disabled>Capture session</button>
-      <button type="button" id="btn-validate" class="btn" disabled>Validate</button>
-      <button type="button" id="btn-delete" class="btn danger" disabled>Clear session</button>
-    </section>
-
-    <p id="status-msg" class="status-msg"></p>
-
-    <section class="block settings">
-      <label for="backend-url">Backend URL</label>
-      <div class="row">
-        <input type="text" id="backend-url" placeholder="http://127.0.0.1:11043">
-        <button type="button" id="btn-save-url" class="btn small">Save</button>
+    <!-- Page Tab -->
+    <div class="tab-content active" id="tab-issue">
+      <p class="issue-host" id="page-host">—</p>
+      <h2 class="issue-title" id="page-title">Not on a Jira issue</h2>
+      <div class="issue-meta-row">
+        <span class="issue-meta" id="page-meta">—</span>
+        <span class="page-engine hidden" id="issue-format"></span>
+        <button type="button" id="btn-refresh-issue" class="btn-sync" title="Refresh this issue" disabled aria-label="Refresh issue">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+            <path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7c2.76 0 5 2.24 5 5a5 5 0 0 1-8.9 3.1L6.7 16.5A7.97 7.97 0 0 0 12 20c4.42 0 8-3.58 8-8 0-2.21-.9-4.21-2.35-5.65z"/>
+          </svg>
+        </button>
       </div>
-    </section>
+      <p class="page-hint hidden" id="page-session-hint">
+        Session is invalid or missing
+        <button type="button" id="btn-refresh-session" class="btn-hint-action">Refresh</button>
+      </p>
+    </div>
+
+    <!-- Spaces Tab -->
+    <div class="tab-content" id="tab-projects">
+      <div id="projects-list" class="projects-compact"></div>
+
+      <div class="projects-footer">
+        <div class="input-group">
+          <input type="text" id="add-project-url" class="input" placeholder="Add project URL…">
+          <button id="btn-add-project" class="btn btn-small">Add</button>
+        </div>
+        <button id="btn-crawl-all" class="btn btn-primary btn-full hidden">Crawl all projects</button>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div class="tab-content" id="tab-settings">
+      <div class="settings-group">
+        <h3>Backend</h3>
+        <div class="input-group">
+          <input type="text" id="backend-url" class="input" placeholder="http://127.0.0.1:11043">
+          <button id="btn-save-url" class="btn btn-small">Save</button>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Session</h3>
+        <label class="checkbox-row">
+          <input type="checkbox" id="auto-renew">
+          <span>Auto-renew session</span>
+        </label>
+      </div>
+
+      <div class="settings-group">
+        <h3>About</h3>
+        <p class="version-text">Ticket Mosquito</p>
+      </div>
+    </div>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

@@ -121,3 +121,9 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 - goal: Make chrome/firefox extension builds work on TypeScript 7 (replace ts-loader-era API assumption).
 - done_when: See `dev/tasks/upgrade-extensions-typescript-7.md`.
 - notes: Dependabot TS7 merge broke ts-loader; pinned ~5.9.3 for now.
+
+## extension-three-tab-parity
+- status: done
+- goal: SpaceMosquito-shaped 3-tab extension (Issue/Projects/Settings) for Jira, plus full crawl/compare/cron HTTP APIs.
+- done_when: See `dev/tasks/extension-three-tab-parity.md`.
+- notes: Backend projects/crawl/issue ops/cron + Chrome/Firefox 3-tab UI shipped.

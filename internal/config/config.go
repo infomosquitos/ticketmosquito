@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -14,6 +15,7 @@ type Config struct {
 	Session  SessionConfig  `yaml:"session"`
 	Browser  BrowserConfig  `yaml:"browser"`
 	MCP      MCPConfig      `yaml:"mcp"`
+	Cron     CronConfig     `yaml:"cron"`
 }
 
 // DatabaseConfig configures the embedded SQLite database.
@@ -53,6 +55,36 @@ type MCPConfig struct {
 	ExposeInternalIDs bool   `yaml:"expose_internal_ids"`
 }
 
+// CronConfig holds optional scheduled crawl defaults (YAML).
+type CronConfig struct {
+	FullCrawl   *CronJobConfig `yaml:"full_crawl"`
+	Incremental *CronJobConfig `yaml:"incremental"`
+}
+
+// CronJobConfig is one YAML cron block.
+type CronJobConfig struct {
+	Enabled     bool     `yaml:"enabled"`
+	Interval    string   `yaml:"interval"`
+	Projects    []string `yaml:"projects"` // project keys or URLs
+	Detection   string   `yaml:"detection"`
+	MaxDuration string   `yaml:"max_duration"`
+}
+
+// ParseCronDuration parses interval strings like "2h", "30m", "7d".
+func ParseCronDuration(d string) (time.Duration, error) {
+	if d == "" {
+		return 0, nil
+	}
+	if len(d) > 1 && d[len(d)-1] == 'd' {
+		days, err := time.ParseDuration(d[:len(d)-1] + "h")
+		if err != nil {
+			return 0, err
+		}
+		return days * 24, nil
+	}
+	return time.ParseDuration(d)
+}
+
 // Load reads and unmarshals a YAML config file.
 func Load(path string) (*Config, error) {
 	expanded := os.ExpandEnv(path)
@@ -83,6 +115,15 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.MCP.Host == "" {
 		cfg.MCP.Host = "127.0.0.1"
+	}
+	if cfg.Cron.FullCrawl != nil && cfg.Cron.FullCrawl.Interval == "" {
+		cfg.Cron.FullCrawl.Interval = "24h"
+	}
+	if cfg.Cron.Incremental != nil && cfg.Cron.Incremental.Interval == "" {
+		cfg.Cron.Incremental.Interval = "2h"
+	}
+	if cfg.Cron.Incremental != nil && cfg.Cron.Incremental.Detection == "" {
+		cfg.Cron.Incremental.Detection = "api"
 	}
 
 	return &cfg, nil

@@ -2,7 +2,7 @@
 
 - **Task ID:** `upgrade-extensions-typescript-7`
 - **Status:** backlog
-- **Parent / blocked by:** —
+- **Parent / blocked by:** Prefer after `extension-three-tab-parity` (paste SM on TS5 first; see that task OQ9)
 
 ## Problem
 

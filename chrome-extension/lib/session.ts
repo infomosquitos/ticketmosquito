@@ -123,7 +123,7 @@ export async function captureCookies(
   const rawCookies = await getAllCookiesForTab(tabUrl, cookieStoreId);
   const rawNames = [...new Set(rawCookies.map((c) => c.name).filter(Boolean))];
 
-  const cookies = rawCookies
+  const mapped = rawCookies
     .filter((c) => c.name)
     .map((c) => {
       const expRaw = c.expirationDate;
@@ -143,6 +143,13 @@ export async function captureCookies(
         sameSite: normalizeSameSite(c.sameSite),
       };
     });
+
+  // Dedupe by cookie name — keep last occurrence (jar scan vs url query ordering).
+  const byName = new Map<string, Cookie>();
+  for (const c of mapped) {
+    byName.set(c.name, c);
+  }
+  const cookies = Array.from(byName.values());
 
   console.log('[ticketmosquito] cookie capture', {
     tabUrl,
@@ -173,63 +180,4 @@ export async function captureAndSave(
   }
   await apiClient.captureSession(jiraUrl, cookies);
   return { success: true, cookieCount: cookies.length };
-}
-
-export type BrowserProbeResult = {
-  path: string;
-  status: number;
-  ok: boolean;
-  contentType: string;
-  location: string;
-  preview: string;
-};
-
-/** Probe /myself using the browser cookie jar (credentials:include). */
-export async function probeMyselfInBrowser(jiraUrl: string): Promise<BrowserProbeResult[]> {
-  const root = new URL(jiraUrl).origin;
-  const paths = ['/rest/api/2/myself', '/rest/api/3/myself', '/rest/auth/1/session'];
-  const out: BrowserProbeResult[] = [];
-  for (const path of paths) {
-    try {
-      const resp = await fetch(root + path, {
-        method: 'GET',
-        credentials: 'include',
-        redirect: 'manual',
-        headers: {
-          Accept: 'application/json',
-          'X-Atlassian-Token': 'no-check',
-        },
-      });
-      const contentType = resp.headers.get('content-type') || '';
-      const location = resp.headers.get('location') || '';
-      let preview = '';
-      try {
-        preview = (await resp.text()).slice(0, 240).replace(/\s+/g, ' ').trim();
-      } catch {
-        /* ignore */
-      }
-      const result: BrowserProbeResult = {
-        path,
-        status: resp.status,
-        ok: resp.status === 200 && contentType.includes('json'),
-        contentType,
-        location,
-        preview,
-      };
-      out.push(result);
-      console.log('[ticketmosquito] browser probe', result);
-    } catch (err) {
-      const result: BrowserProbeResult = {
-        path,
-        status: 0,
-        ok: false,
-        contentType: '',
-        location: '',
-        preview: String(err),
-      };
-      out.push(result);
-      console.log('[ticketmosquito] browser probe error', result);
-    }
-  }
-  return out;
 }

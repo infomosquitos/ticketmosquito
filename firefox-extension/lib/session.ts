@@ -9,8 +9,9 @@ function normalizeSameSite(value?: string): string {
   return value;
 }
 
-function cookieKey(c: chrome.cookies.Cookie & { storeId?: string; partitionKey?: unknown; firstPartyDomain?: string }): string {
-  return `${c.storeId || ''}|${c.name}|${c.domain}|${c.path}|${JSON.stringify(c.partitionKey ?? null)}`;
+function cookieKey(c: chrome.cookies.Cookie): string {
+  const partition = (c as chrome.cookies.Cookie & { partitionKey?: unknown }).partitionKey;
+  return `${c.name}|${c.domain}|${c.path}|${JSON.stringify(partition ?? null)}`;
 }
 
 export function isJiraUrl(url: string): boolean {
@@ -32,65 +33,82 @@ function domainVariants(hostname: string): string[] {
 }
 
 /**
- * Match SpaceMosquito Firefox capture: url + hostname, partitionKey, firstPartyDomain,
- * and the tab's cookieStoreId (Multi-Account Containers).
+ * Match SpaceMosquito Firefox capture: url + hostname queries, plus partitionKey
+ * so CHIPS / partitioned SSO cookies are not missed. Prefer the tab store when set.
  */
 async function getAllCookiesForTab(
   tabUrl: string,
   preferredStoreId?: string
-): Promise<Array<chrome.cookies.Cookie & { storeId?: string }>> {
+): Promise<chrome.cookies.Cookie[]> {
   const hostname = new URL(tabUrl).hostname;
   const domains = domainVariants(hostname);
 
-  let storeIds: string[] = [];
-  try {
-    const stores = await chrome.cookies.getAllCookieStores();
-    storeIds = stores.map((s) => s.id).filter(Boolean);
-  } catch {
-    /* ignore */
-  }
-  if (preferredStoreId && !storeIds.includes(preferredStoreId)) {
-    storeIds.unshift(preferredStoreId);
-  } else if (preferredStoreId) {
-    storeIds = [preferredStoreId, ...storeIds.filter((id) => id !== preferredStoreId)];
-  }
-  if (storeIds.length === 0) {
-    storeIds = preferredStoreId ? [preferredStoreId] : [];
-  }
+  const storeBases: chrome.cookies.GetAllDetails[] = preferredStoreId
+    ? [{ storeId: preferredStoreId }, {}]
+    : [{}];
 
-  const storeBases: Record<string, unknown>[] =
-    storeIds.length > 0 ? storeIds.map((storeId) => ({ storeId })) : [{}];
-
-  const queries: Record<string, unknown>[] = [];
+  const queries: chrome.cookies.GetAllDetails[] = [];
   for (const base of storeBases) {
     queries.push(
-      { ...base, url: tabUrl, partitionKey: {}, firstPartyDomain: null },
       { ...base, url: tabUrl, partitionKey: {} },
-      { ...base, url: tabUrl, firstPartyDomain: null },
       { ...base, url: tabUrl }
     );
     for (const domain of domains) {
       queries.push(
-        { ...base, domain, partitionKey: {}, firstPartyDomain: null },
         { ...base, domain, partitionKey: {} },
-        { ...base, domain, firstPartyDomain: null },
         { ...base, domain }
       );
     }
   }
 
-  const byKey = new Map<string, chrome.cookies.Cookie & { storeId?: string }>();
-  for (const details of queries) {
+  const byKey = new Map<string, chrome.cookies.Cookie>();
+  for (const q of queries) {
     try {
-      const batch = await chrome.cookies.getAll(details as chrome.cookies.GetAllDetails);
+      const batch = await chrome.cookies.getAll(q);
       for (const c of batch) {
         if (c?.name) byKey.set(cookieKey(c), c);
       }
     } catch {
-      /* ignore unsupported filter combinations */
+      /* partitionKey/storeId unsupported combination */
     }
   }
+
+  // Fallback: scan the whole jar and keep cookies that apply to this URL.
+  // Catches cookies getAll({url}) sometimes misses under corporate SSO.
+  try {
+    const all = await chrome.cookies.getAll({});
+    for (const c of all) {
+      if (c?.name && cookieAppliesToUrl(c, tabUrl)) {
+        byKey.set(cookieKey(c), c);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
   return Array.from(byKey.values());
+}
+
+function cookieAppliesToUrl(c: chrome.cookies.Cookie, tabUrl: string): boolean {
+  try {
+    const u = new URL(tabUrl);
+    if (c.secure && u.protocol !== 'https:') return false;
+    const host = u.hostname.toLowerCase();
+    let dom = (c.domain || '').toLowerCase();
+    if (dom.startsWith('.')) dom = dom.slice(1);
+    if (!dom) return false;
+    if (host !== dom && !host.endsWith('.' + dom)) return false;
+    const path = c.path || '/';
+    if (!u.pathname.startsWith(path)) {
+      // path prefix match with boundary
+      if (path !== '/' && !u.pathname.startsWith(path.endsWith('/') ? path : path + '/')) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function captureCookies(
@@ -105,7 +123,7 @@ export async function captureCookies(
   const rawCookies = await getAllCookiesForTab(tabUrl, cookieStoreId);
   const rawNames = [...new Set(rawCookies.map((c) => c.name).filter(Boolean))];
 
-  const cookies = rawCookies
+  const mapped = rawCookies
     .filter((c) => c.name)
     .map((c) => {
       const expRaw = c.expirationDate;
@@ -115,16 +133,23 @@ export async function captureCookies(
         if (Number.isFinite(n) && n > 0) expires = n;
       }
       return {
-        name: String(c.name),
-        value: String(c.value ?? ''),
-        domain: String(c.domain || domain),
-        path: String(c.path || '/'),
+        name: c.name,
+        value: c.value ?? '',
+        domain: c.domain || domain,
+        path: c.path || '/',
         expires,
-        secure: Boolean(c.secure),
-        httpOnly: Boolean(c.httpOnly),
+        secure: !!c.secure,
+        httpOnly: !!c.httpOnly,
         sameSite: normalizeSameSite(c.sameSite),
       };
     });
+
+  // Dedupe by cookie name — keep last occurrence (jar scan vs url query ordering).
+  const byName = new Map<string, Cookie>();
+  for (const c of mapped) {
+    byName.set(c.name, c);
+  }
+  const cookies = Array.from(byName.values());
 
   console.log('[ticketmosquito] cookie capture', {
     tabUrl,
@@ -155,63 +180,4 @@ export async function captureAndSave(
   }
   await apiClient.captureSession(jiraUrl, cookies);
   return { success: true, cookieCount: cookies.length };
-}
-
-export type BrowserProbeResult = {
-  path: string;
-  status: number;
-  ok: boolean;
-  contentType: string;
-  location: string;
-  preview: string;
-};
-
-/** Probe /myself using the browser cookie jar (credentials:include). */
-export async function probeMyselfInBrowser(jiraUrl: string): Promise<BrowserProbeResult[]> {
-  const root = new URL(jiraUrl).origin;
-  const paths = ['/rest/api/2/myself', '/rest/api/3/myself', '/rest/auth/1/session'];
-  const out: BrowserProbeResult[] = [];
-  for (const path of paths) {
-    try {
-      const resp = await fetch(root + path, {
-        method: 'GET',
-        credentials: 'include',
-        redirect: 'manual',
-        headers: {
-          Accept: 'application/json',
-          'X-Atlassian-Token': 'no-check',
-        },
-      });
-      const contentType = resp.headers.get('content-type') || '';
-      const location = resp.headers.get('location') || '';
-      let preview = '';
-      try {
-        preview = (await resp.text()).slice(0, 240).replace(/\s+/g, ' ').trim();
-      } catch {
-        /* ignore */
-      }
-      const result: BrowserProbeResult = {
-        path,
-        status: resp.status,
-        ok: resp.status === 200 && contentType.includes('json'),
-        contentType,
-        location,
-        preview,
-      };
-      out.push(result);
-      console.log('[ticketmosquito] browser probe', result);
-    } catch (err) {
-      const result: BrowserProbeResult = {
-        path,
-        status: 0,
-        ok: false,
-        contentType: '',
-        location: '',
-        preview: String(err),
-      };
-      out.push(result);
-      console.log('[ticketmosquito] browser probe error', result);
-    }
-  }
-  return out;
 }

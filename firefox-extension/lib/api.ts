@@ -1,4 +1,10 @@
-import type { Cookie, SessionStatus } from './types';
+import type {
+  Cookie,
+  CrawlJob,
+  CrawlProject,
+  CronProjectConfig,
+  SessionStatus,
+} from './types';
 
 export class ApiClient {
   private baseUrl = 'http://127.0.0.1:11043';
@@ -64,20 +70,96 @@ export class ApiClient {
     return this.request(`/api/session/status${q}`);
   }
 
-  async validateSession(
-    jiraUrl?: string,
-    browserProbe?: unknown
-  ): Promise<{ valid: boolean; message: string; flavor?: string }> {
-    const body: Record<string, unknown> = {};
-    if (jiraUrl) body.jira_url = jiraUrl;
-    if (browserProbe) body.browser_probe = browserProbe;
+  async validateSession(jiraUrl?: string): Promise<{ valid: boolean; message: string; flavor?: string }> {
     return this.request('/api/session/validate', {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify(jiraUrl ? { jira_url: jiraUrl } : {}),
     });
   }
 
   async deleteSession(): Promise<{ message: string }> {
     return this.request('/api/session', { method: 'DELETE' });
+  }
+
+  async startCrawl(projectUrl: string, force = false): Promise<{ job_id: string }> {
+    return this.request('/api/crawl', {
+      method: 'POST',
+      body: JSON.stringify({ project_url: projectUrl, force }),
+    });
+  }
+
+  async listCrawls(): Promise<{ jobs: CrawlJob[]; total: number; running: number; completed: number; failed: number; pending: number }> {
+    return this.request('/api/crawl');
+  }
+
+  async getCrawlStatus(jobId: string): Promise<CrawlJob> {
+    return this.request(`/api/crawl/status?id=${encodeURIComponent(jobId)}`);
+  }
+
+  async cancelCrawl(jobId: string): Promise<void> {
+    await this.request(`/api/crawl/cancel?id=${encodeURIComponent(jobId)}`, { method: 'POST' });
+  }
+
+  async addProject(url: string): Promise<{ message: string; project_key: string }> {
+    return this.request('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    });
+  }
+
+  async listProjects(): Promise<CrawlProject[]> {
+    return this.request('/api/projects');
+  }
+
+  async deleteProject(projectKey: string): Promise<void> {
+    await this.request(`/api/projects/${encodeURIComponent(projectKey)}`, { method: 'DELETE' });
+  }
+
+  async getCronConfig(): Promise<{
+    yaml_full_crawl: { enabled: boolean; interval: string; projects: string[]; max_duration: string };
+    yaml_incremental: { enabled: boolean; interval: string; detection: string; projects: string[]; max_duration: string };
+    per_project_overrides: CronProjectConfig[];
+  }> {
+    return this.request('/api/cron/config');
+  }
+
+  async updateProjectCron(projectKey: string, config: Partial<CronProjectConfig>): Promise<{ message: string }> {
+    return this.request(`/api/cron/project/${encodeURIComponent(projectKey)}`, {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async getProjectCronConfig(projectKey: string): Promise<CronProjectConfig> {
+    return this.request(`/api/cron/project/${encodeURIComponent(projectKey)}`);
+  }
+
+  async reloadCron(): Promise<{ message: string }> {
+    return this.request('/api/cron/reload', { method: 'POST' });
+  }
+
+  async getIssue(issueKey: string): Promise<{
+    issue_key: string;
+    summary: string;
+    updated?: string;
+    body_format?: string;
+  }> {
+    return this.request(`/api/issues/${encodeURIComponent(issueKey)}`);
+  }
+
+  async compareIssue(issueKey: string): Promise<{
+    issue_key: string;
+    project_key: string;
+    live: { updated?: string; summary?: string };
+    stored: { updated?: string; summary?: string; body_format?: string } | null;
+  }> {
+    return this.request(`/api/issues/${encodeURIComponent(issueKey)}/compare`);
+  }
+
+  async refreshIssue(issueKey: string): Promise<{ issue_key: string; summary?: string; updated?: string }> {
+    return this.request(`/api/issues/${encodeURIComponent(issueKey)}/refresh`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   }
 }
