@@ -67,7 +67,9 @@ func Run(ctx context.Context, cfg *config.Config, log *zap.Logger) error {
 	mux.HandleFunc("GET /api/projects", catalog.ListProjects)
 	mux.HandleFunc("GET /api/issues/", catalog.GetIssue)
 
-	mux.HandleFunc("/mcp", mcpServer.HandleRequest)
+	// Method-specific patterns required: bare "/mcp" conflicts with "GET /" on Go 1.22+ ServeMux.
+	mux.HandleFunc("GET /mcp", mcpServer.HandleRequest)
+	mux.HandleFunc("POST /mcp", mcpServer.HandleRequest)
 
 	handler := api.CORSMiddleware(mux, sugar)
 

@@ -1,23 +1,24 @@
 # Status
 
-Last updated: 2026-10-18
+Last updated: 2026-10-19
 
 ## Current focus
 
-Changelog prepared for **v0.1.0** (not committed / not tagged yet). Task docs not cleaned up.
+Post-MVP distribution planning — Homebrew tap drafted (spikes first).
 
 ## Active task
 
-_None._
+_None — next candidate: `spike-homebrew-tap-formula` or `spike-extension-coinstall` (both backlog)._
 
 ## Blockers
 
-_None._
+Parent `homebrew-tap-distribution` blocked_by both spikes (OQs open).
 
 ## Next action
 
-When ready: commit changelog (and any other pending work), `git tag -a v0.1.0`, push with tags (CI release). Later: `dev/CLEANUP.md` for finished tasks.
+Run spikes and lock OQs before implementing the tap / extension CLI.
 
 ## Session notes
 
-- Cut prep only: `[0.1.0] - 2026-10-18` in CHANGELOG; no commit, no tag, no task cleanup.
+- Drafted `homebrew-tap-distribution` + spikes `spike-homebrew-tap-formula`, `spike-extension-coinstall` (task docs only).
+- v0.1.0 changelog prep still uncommitted/untagged; task cleanup still deferred.

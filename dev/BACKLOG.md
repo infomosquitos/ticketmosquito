@@ -95,3 +95,23 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 - goal: README, architecture, ADRs, install/release packaging for MVP.
 - done_when: See `dev/tasks/docs-and-release-packaging.md`.
 - notes: README + ARCHITECTURE + INSTALL; ADRs 004–006; CI test/release; build-release.sh.
+
+## homebrew-tap-distribution
+- status: backlog
+- blocked_by: spike-homebrew-tap-formula, spike-extension-coinstall
+- goal: Custom Homebrew tap so macOS users get the binary plus a clear extension co-install path.
+- done_when: See `dev/tasks/homebrew-tap-distribution.md`.
+- notes: Brew cannot silent-install browser extensions; spikes own formula shape + assisted install UX.
+
+## spike-homebrew-tap-formula
+- status: backlog
+- parent: homebrew-tap-distribution
+- goal: Recommend tap layout, formula vs cask, bottle/asset mapping, platforms.
+- done_when: See `dev/tasks/spike-homebrew-tap-formula.md`.
+
+## spike-extension-coinstall
+- status: backlog
+- parent: homebrew-tap-distribution
+- goal: Recommend how Chrome/Firefox extensions ship with the app without silent browser install.
+- done_when: See `dev/tasks/spike-extension-coinstall.md`.
+- notes: Architecture changes (CLI, share/, data-dir) allowed.
