@@ -301,7 +301,11 @@ async function captureAndValidate(): Promise<void> {
     const result: any = await chrome.runtime.sendMessage({ type: 'capture-and-validate' });
     if (result?.success && result?.valid) {
       setSessionDisc('valid', 'Session is valid');
-      await loadIssueContext();
+      try {
+        await loadIssueContext();
+      } catch (err) {
+        console.error('[ticketmosquito] loadIssueContext after validate:', err);
+      }
     } else if (result?.success && result?.valid === false) {
       setSessionDisc('invalid', 'Session is invalid or missing');
     } else {
@@ -339,9 +343,13 @@ async function detectCurrentIssue() {
 }
 
 async function loadIssueContext() {
-  const hostEl = document.getElementById('issue-host') as HTMLParagraphElement;
-  const titleEl = document.getElementById('issue-title') as HTMLHeadingElement;
-  const metaEl = document.getElementById('issue-meta') as HTMLSpanElement;
+  const hostEl = document.getElementById('issue-host');
+  const titleEl = document.getElementById('issue-title');
+  const metaEl = document.getElementById('issue-meta');
+  if (!hostEl || !titleEl || !metaEl) {
+    console.error('[ticketmosquito] issue tab DOM missing');
+    return;
+  }
 
   try {
     const info: any = await chrome.runtime.sendMessage({ type: 'get-issue-info' });

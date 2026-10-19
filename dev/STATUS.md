@@ -20,6 +20,6 @@ Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Hosted Jira validate 401 again with only 3 cookies after name-dedupe; capture now uses identity dedupe + CHIPS-safe queries (`domain` + `partitionKey:{}`, not `url`+partition) and logs `capture_debug` on POST /api/session.
-- Reload extension from `dist/` and recapture; expect cookie_count > 3 and/or capture_debug.queryHits showing partAny hits.
+- Hosted session capture fixed (5 cookies / CHIPS). Popup alert after revalidate was a DOM id mismatch (`page-host` vs `issue-host`); HTML aligned + null-guards.
+- Reload extension from `dist/` after rebuild.
 - Shipped `extension-three-tab-parity`; Homebrew spikes / v0.1.0 still open.
