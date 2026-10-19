@@ -20,6 +20,6 @@ Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Hosted session + single-issue refresh OK. Project crawl failed: stored URL `/browse/SK` was not parsed (only `/browse/KEY-N`); ParseProjectRef now accepts project-only browse URLs; crawl job failures are logged.
-- Reload extension from `dist/` after rebuild; restart `make serve` for crawl fix.
+- Crawl works; Projects-tab progress was broken because `projectKeyFromUrl` ignored `/browse/SK`. Fixed + Server/DC reports total early during discovery.
+- Restart `make serve`, reload extension from `dist/`.
 - Shipped `extension-three-tab-parity`; Homebrew spikes / v0.1.0 still open.

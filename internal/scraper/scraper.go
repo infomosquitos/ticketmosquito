@@ -71,12 +71,25 @@ func (s *Scraper) CrawlProject(ctx context.Context, projectRef string) (*Stats, 
 		return nil, err
 	}
 
-	refs, err := client.SearchProjectIssues(ctx, projectKey)
+	refs, err := client.SearchProjectIssues(ctx, projectKey, func(found, totalHint int) {
+		if s.progress == nil {
+			return
+		}
+		total := totalHint
+		if total <= 0 {
+			total = found
+		}
+		// Discovery phase: completed stays 0; total is Jira's estimate (DC) or found so far (Cloud).
+		s.progress(0, total, 0)
+	})
 	if err != nil {
 		return nil, fmt.Errorf("discover issues: %w", err)
 	}
 	stats := &Stats{Discovered: len(refs)}
 	s.log.Infow("discovered issues", "project", projectKey, "count", len(refs), "force", s.force)
+	if s.progress != nil {
+		s.progress(0, stats.Discovered, 0)
+	}
 
 	for _, ref := range refs {
 		if err := ctx.Err(); err != nil {

@@ -149,16 +149,21 @@ type CommentDetail struct {
 	BodyHTML string
 }
 
+// DiscoverProgress reports discovery pagination. totalHint is Jira's reported
+// total when known (Server/DC); 0 means unknown (Cloud token pages).
+type DiscoverProgress func(foundSoFar, totalHint int)
+
 // SearchProjectIssues lists all issues in a project (id, key, updated).
-func (c *Client) SearchProjectIssues(ctx context.Context, projectKey string) ([]IssueRef, error) {
+// onProgress is optional and may be called after each search page.
+func (c *Client) SearchProjectIssues(ctx context.Context, projectKey string, onProgress DiscoverProgress) ([]IssueRef, error) {
 	jql := fmt.Sprintf(`project = "%s" ORDER BY key ASC`, strings.ToUpper(projectKey))
 	if c.server {
-		return c.searchServer(ctx, jql)
+		return c.searchServer(ctx, jql, onProgress)
 	}
-	return c.searchCloud(ctx, jql)
+	return c.searchCloud(ctx, jql, onProgress)
 }
 
-func (c *Client) searchCloud(ctx context.Context, jql string) ([]IssueRef, error) {
+func (c *Client) searchCloud(ctx context.Context, jql string, onProgress DiscoverProgress) ([]IssueRef, error) {
 	var out []IssueRef
 	token := ""
 	for {
@@ -187,6 +192,9 @@ func (c *Client) searchCloud(ctx context.Context, jql string) ([]IssueRef, error
 			updated, _ := ParseTime(iss.Fields.Updated)
 			out = append(out, IssueRef{ID: iss.ID, Key: iss.Key, Updated: updated})
 		}
+		if onProgress != nil {
+			onProgress(len(out), 0)
+		}
 		if resp.NextPageToken == "" {
 			break
 		}
@@ -195,7 +203,7 @@ func (c *Client) searchCloud(ctx context.Context, jql string) ([]IssueRef, error
 	return out, nil
 }
 
-func (c *Client) searchServer(ctx context.Context, jql string) ([]IssueRef, error) {
+func (c *Client) searchServer(ctx context.Context, jql string, onProgress DiscoverProgress) ([]IssueRef, error) {
 	var out []IssueRef
 	start := 0
 	const page = 50
@@ -224,6 +232,9 @@ func (c *Client) searchServer(ctx context.Context, jql string) ([]IssueRef, erro
 		for _, iss := range resp.Issues {
 			updated, _ := ParseTime(iss.Fields.Updated)
 			out = append(out, IssueRef{ID: iss.ID, Key: iss.Key, Updated: updated})
+		}
+		if onProgress != nil {
+			onProgress(len(out), resp.Total)
 		}
 		start += len(resp.Issues)
 		if start >= resp.Total || len(resp.Issues) == 0 {
@@ -277,9 +288,9 @@ func (c *Client) ListComments(ctx context.Context, issueKeyOrID string) ([]Comme
 
 func parseIssueDetail(raw []byte) (*IssueDetail, error) {
 	var envelope struct {
-		ID     string          `json:"id"`
-		Key    string          `json:"key"`
-		Fields json.RawMessage `json:"fields"`
+		ID             string          `json:"id"`
+		Key            string          `json:"key"`
+		Fields         json.RawMessage `json:"fields"`
 		RenderedFields struct {
 			Description string `json:"description"`
 		} `json:"renderedFields"`

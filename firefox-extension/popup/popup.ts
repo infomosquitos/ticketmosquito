@@ -49,8 +49,12 @@ function projectKeyFromUrl(url: string): string {
       url.match(/\/projects\/([^/?#]+)/i) ||
       url.match(/\/jira(?:\/software)?\/c?\/projects\/([^/?#]+)/i);
     if (proj) return decodeURIComponent(proj[1]).toUpperCase();
-    const browse = url.match(/\/browse\/([A-Z][A-Z0-9]+)-\d+/i);
-    if (browse) return browse[1].toUpperCase();
+    // Issue: /browse/KEY-123 — then project-only: /browse/KEY (BrowseURL form)
+    const browseIssue = url.match(/\/browse\/([A-Z][A-Z0-9]+)-\d+(?:\/|$)/i);
+    if (browseIssue) return browseIssue[1].toUpperCase();
+    const browseProject = url.match(/\/browse\/([A-Z][A-Z0-9]+)(?:\/|$)/i);
+    if (browseProject) return browseProject[1].toUpperCase();
+    if (/^[A-Z][A-Z0-9]+$/i.test(url.trim())) return url.trim().toUpperCase();
     return (parsed.searchParams.get('projectKey') || '').toUpperCase();
   } catch {
     return '';
@@ -473,15 +477,20 @@ function applyJobToRow(projectKey: string, job: CrawlJob | null): void {
 
   const active = job && (job.status === 'running' || job.status === 'pending');
   if (active && job) {
+    const discovering = job.total_issues > 0 && job.completed === 0 && (job.progress || 0) === 0;
     const percent = job.total_issues > 0
-      ? Math.round((job.completed / job.total_issues) * 100)
+      ? Math.min(100, Math.round((job.completed / job.total_issues) * 100))
       : (job.progress || 0);
     panel?.classList.remove('hidden');
     if (fill) fill.style.width = `${percent}%`;
     if (label) {
-      label.textContent = job.total_issues > 0
-        ? `Crawling… ${job.completed} / ${job.total_issues} · ${percent}%`
-        : `Crawling… ${percent}%`;
+      if (discovering) {
+        label.textContent = `Discovering… ${job.total_issues} issues`;
+      } else if (job.total_issues > 0) {
+        label.textContent = `Crawling… ${job.completed} / ${job.total_issues} · ${percent}%`;
+      } else {
+        label.textContent = 'Discovering issues…';
+      }
     }
     if (counts && job.total_issues > 0) {
       counts.textContent = `${job.completed} / ${job.total_issues}`;
