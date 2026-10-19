@@ -118,10 +118,16 @@ document.addEventListener('DOMContentLoaded', () => {
       'VALIDATE_SESSION',
       { url: tab?.url }
     );
-    setMsg(result.valid
-      ? `Valid${result.flavor ? ` (${result.flavor})` : ''}: ${result.message || 'ok'}`
-      : (result.message || 'Invalid'));
     await refresh();
+    // refresh() would show the generic "requires validation" status; keep the
+    // concrete probe message so SSO/cookie failures are visible.
+    if (result.valid) {
+      setDot('ok');
+      setMsg(`Valid${result.flavor ? ` (${result.flavor})` : ''}: ${result.message || 'ok'}`);
+    } else {
+      setDot('bad');
+      setMsg(result.message || 'Validation failed');
+    }
   });
 
   $('btn-delete').addEventListener('click', async () => {

@@ -147,6 +147,17 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 		outcome := classifyValidationResponse(resp)
 		resp.Body.Close()
 
+		if s.log.Enabled() {
+			s.log.Infow("session validation probe result",
+				"url", testURL,
+				"flavor", p.flavor,
+				"kind", outcome.kind.String(),
+				"status", outcome.status,
+				"reason", outcome.reason,
+				"cookies", len(s.Cookies),
+			)
+		}
+
 		switch outcome.kind {
 		case validationOK:
 			now := time.Now()
@@ -217,6 +228,21 @@ const (
 	validationSSOIntercept
 	validationNotFound
 )
+
+func (k validationKind) String() string {
+	switch k {
+	case validationOK:
+		return "ok"
+	case validationUnauthorized:
+		return "unauthorized"
+	case validationSSOIntercept:
+		return "sso_or_non_json"
+	case validationNotFound:
+		return "not_found"
+	default:
+		return fmt.Sprintf("kind_%d", int(k))
+	}
+}
 
 type validationOutcome struct {
 	kind   validationKind
