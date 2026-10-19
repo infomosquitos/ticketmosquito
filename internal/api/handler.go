@@ -23,8 +23,9 @@ func New(store *session.Store, cfg *config.Config, log logging.Sugar) *Handler {
 }
 
 type createSessionRequest struct {
-	JiraURL string           `json:"jira_url"`
-	Cookies []session.Cookie `json:"cookies"`
+	JiraURL      string                 `json:"jira_url"`
+	Cookies      []session.Cookie       `json:"cookies"`
+	CaptureDebug map[string]interface{} `json:"capture_debug,omitempty"`
 }
 
 // CreateSession stores cookies for a Jira host.
@@ -75,7 +76,8 @@ func (h *Handler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		"url", req.JiraURL,
 		"host", session.HostnameKey(req.JiraURL),
 		"cookie_count", len(req.Cookies),
-		"cookie_names", names)
+		"cookie_names", names,
+		"capture_debug", req.CaptureDebug)
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":      "session saved",

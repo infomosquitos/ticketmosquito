@@ -11,7 +11,7 @@ function normalizeSameSite(value?: string): string {
 
 function cookieKey(c: chrome.cookies.Cookie): string {
   const partition = (c as chrome.cookies.Cookie & { partitionKey?: unknown }).partitionKey;
-  return `${c.name}|${c.domain}|${c.path}|${JSON.stringify(partition ?? null)}`;
+  return `${c.name}|${c.domain}|${c.path}|${c.value}|${JSON.stringify(partition ?? null)}`;
 }
 
 export function isJiraUrl(url: string): boolean {
@@ -27,100 +27,123 @@ export function isJiraUrl(url: string): boolean {
   );
 }
 
-/** Hostname only (SpaceMosquito lock): do not scrape parent domains for SSO. */
 function domainVariants(hostname: string): string[] {
   return [hostname, '.' + hostname];
 }
 
 /**
- * Match SpaceMosquito Firefox capture: url + hostname queries, plus partitionKey
- * so CHIPS / partitioned SSO cookies are not missed. Prefer the tab store when set.
+ * Collect cookies for a Jira tab.
+ *
+ * Important Chrome quirk (CHIPS): getAll with `url` + `partitionKey` can miss
+ * partitioned cookies. Prefer `domain` + `partitionKey: {}` (returns both
+ * partitioned and unpartitioned), then merge URL-scoped unpartitioned results.
  */
 async function getAllCookiesForTab(
   tabUrl: string,
   preferredStoreId?: string
-): Promise<chrome.cookies.Cookie[]> {
-  const hostname = new URL(tabUrl).hostname;
+): Promise<{ cookies: chrome.cookies.Cookie[]; queryHits: Record<string, number> }> {
+  const u = new URL(tabUrl);
+  const hostname = u.hostname;
+  const origin = u.origin;
   const domains = domainVariants(hostname);
 
   const storeBases: chrome.cookies.GetAllDetails[] = preferredStoreId
     ? [{ storeId: preferredStoreId }, {}]
     : [{}];
 
-  const queries: chrome.cookies.GetAllDetails[] = [];
+  const queries: { label: string; details: chrome.cookies.GetAllDetails }[] = [];
   for (const base of storeBases) {
+    const storeLabel = (base as { storeId?: string }).storeId || 'default';
+
+    // Unpartitioned URL match (what the browser would send for this URL).
     queries.push(
-      { ...base, url: tabUrl, partitionKey: {} },
-      { ...base, url: tabUrl }
+      { label: `${storeLabel}:url`, details: { ...base, url: tabUrl } },
+      { label: `${storeLabel}:origin`, details: { ...base, url: origin + '/' } },
     );
+
+    // CHIPS: domain + empty partitionKey — do NOT combine with url.
     for (const domain of domains) {
       queries.push(
-        { ...base, domain, partitionKey: {} },
-        { ...base, domain }
+        { label: `${storeLabel}:domain:${domain}`, details: { ...base, domain } },
+        {
+          label: `${storeLabel}:domain+partAny:${domain}`,
+          details: { ...base, domain, partitionKey: {} },
+        },
+        {
+          label: `${storeLabel}:domain+partTLS:${domain}`,
+          details: { ...base, domain, partitionKey: { topLevelSite: origin } },
+        },
+        {
+          label: `${storeLabel}:domain+partTLS0:${domain}`,
+          details: {
+            ...base,
+            domain,
+            partitionKey: { topLevelSite: origin, hasCrossSiteAncestor: false },
+          },
+        },
+        {
+          label: `${storeLabel}:domain+partTLS1:${domain}`,
+          details: {
+            ...base,
+            domain,
+            partitionKey: { topLevelSite: origin, hasCrossSiteAncestor: true },
+          },
+        },
       );
     }
+
+    // Whole jar with partitionKey:{} (then host-filter below).
+    queries.push({
+      label: `${storeLabel}:jar+partAny`,
+      details: { ...base, partitionKey: {} },
+    });
   }
 
   const byKey = new Map<string, chrome.cookies.Cookie>();
+  const queryHits: Record<string, number> = {};
+
   for (const q of queries) {
     try {
-      const batch = await chrome.cookies.getAll(q);
+      const batch = await chrome.cookies.getAll(q.details);
+      queryHits[q.label] = batch.length;
       for (const c of batch) {
-        if (c?.name) byKey.set(cookieKey(c), c);
-      }
-    } catch {
-      /* partitionKey/storeId unsupported combination */
-    }
-  }
-
-  // Fallback: scan the whole jar and keep cookies that apply to this URL.
-  // Catches cookies getAll({url}) sometimes misses under corporate SSO.
-  try {
-    const all = await chrome.cookies.getAll({});
-    for (const c of all) {
-      if (c?.name && cookieAppliesToUrl(c, tabUrl)) {
+        if (!c?.name) continue;
+        // For jar-wide queries, keep only cookies for this host / parent.
+        if (q.label.includes('jar+')) {
+          let dom = (c.domain || '').toLowerCase();
+          if (dom.startsWith('.')) dom = dom.slice(1);
+          const host = hostname.toLowerCase();
+          if (!dom || !(host === dom || host.endsWith('.' + dom) || dom.endsWith('.' + host))) {
+            continue;
+          }
+        }
         byKey.set(cookieKey(c), c);
       }
+    } catch {
+      queryHits[q.label] = -1;
     }
-  } catch {
-    /* ignore */
   }
 
-  return Array.from(byKey.values());
+  return { cookies: Array.from(byKey.values()), queryHits };
 }
 
-function cookieAppliesToUrl(c: chrome.cookies.Cookie, tabUrl: string): boolean {
-  try {
-    const u = new URL(tabUrl);
-    if (c.secure && u.protocol !== 'https:') return false;
-    const host = u.hostname.toLowerCase();
-    let dom = (c.domain || '').toLowerCase();
-    if (dom.startsWith('.')) dom = dom.slice(1);
-    if (!dom) return false;
-    if (host !== dom && !host.endsWith('.' + dom)) return false;
-    const path = c.path || '/';
-    if (!u.pathname.startsWith(path)) {
-      // path prefix match with boundary
-      if (path !== '/' && !u.pathname.startsWith(path.endsWith('/') ? path : path + '/')) {
-        return false;
-      }
-    }
-    return true;
-  } catch {
-    return false;
-  }
-}
+export type CaptureDebug = {
+  rawCount: number;
+  keptCount: number;
+  rawNames: string[];
+  keptMeta: string[];
+  queryHits: Record<string, number>;
+};
 
 export async function captureCookies(
   tabUrl: string,
   cookieStoreId?: string
 ): Promise<{
   cookies: Cookie[];
-  rawCount: number;
-  rawNames: string[];
+  debug: CaptureDebug;
 }> {
   const domain = new URL(tabUrl).hostname;
-  const rawCookies = await getAllCookiesForTab(tabUrl, cookieStoreId);
+  const { cookies: rawCookies, queryHits } = await getAllCookiesForTab(tabUrl, cookieStoreId);
   const rawNames = [...new Set(rawCookies.map((c) => c.name).filter(Boolean))];
 
   const mapped = rawCookies
@@ -144,43 +167,44 @@ export async function captureCookies(
       };
     });
 
-  // Dedupe only exact duplicates (same name+domain+path+value). Do NOT collapse
-  // by name alone — corporate Jira often has partition-distinct JSESSIONID /
-  // atlassian.xsrf.token pairs; sending both is required for /myself to succeed.
+  // Exact-duplicate only (name+domain+path+value). Keep same-name variants.
   const byIdentity = new Map<string, Cookie>();
   for (const c of mapped) {
     byIdentity.set(`${c.name}|${c.domain}|${c.path}|${c.value}`, c);
   }
   const cookies = Array.from(byIdentity.values());
 
-  console.log('[ticketmosquito] cookie capture', {
-    tabUrl,
-    cookieStoreId,
+  const debug: CaptureDebug = {
     rawCount: rawCookies.length,
-    rawNames,
     keptCount: cookies.length,
-    keptNames: cookies.map((c) => c.name),
-    keptMeta: cookies.map((c) => `${c.name}@${c.domain} len=${c.value.length}`),
-  });
+    rawNames,
+    keptMeta: cookies.map(
+      (c) => `${c.name}@${c.domain} path=${c.path} len=${c.value.length} httpOnly=${c.httpOnly}`
+    ),
+    queryHits,
+  };
 
-  return { cookies, rawCount: rawCookies.length, rawNames };
+  console.log('[ticketmosquito] cookie capture', { tabUrl, cookieStoreId, ...debug });
+
+  return { cookies, debug };
 }
 
 export async function captureAndSave(
   jiraUrl: string,
   apiClient: ApiClient,
   cookieStoreId?: string
-): Promise<{ success: boolean; cookieCount: number; error?: string }> {
-  const { cookies, rawNames } = await captureCookies(jiraUrl, cookieStoreId);
+): Promise<{ success: boolean; cookieCount: number; error?: string; debug?: CaptureDebug }> {
+  const { cookies, debug } = await captureCookies(jiraUrl, cookieStoreId);
   if (cookies.length === 0) {
     return {
       success: false,
       cookieCount: 0,
+      debug,
       error:
-        `No cookies visible for this tab (saw: ${rawNames.slice(0, 12).join(', ') || 'none'}). ` +
+        `No cookies visible for this tab (saw: ${debug.rawNames.slice(0, 12).join(', ') || 'none'}). ` +
         `Stay logged in, then capture again.`,
     };
   }
-  await apiClient.captureSession(jiraUrl, cookies);
-  return { success: true, cookieCount: cookies.length };
+  await apiClient.captureSession(jiraUrl, cookies, debug);
+  return { success: true, cookieCount: cookies.length, debug };
 }

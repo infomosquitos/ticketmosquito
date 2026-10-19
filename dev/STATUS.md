@@ -20,6 +20,6 @@ Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Shipped `extension-three-tab-parity`: HTTP projects CRUD, async crawl jobs, issue compare/refresh, cron; Chrome+Firefox Issue/Projects/Settings popups (SM paste-adapt); cookie dedupe; install guide updated.
-- Hosted Jira session validate works; do TS7 upgrade after this (OQ9).
-- v0.1.0 changelog still uncommitted/untagged.
+- Hosted Jira validate 401 again with only 3 cookies after name-dedupe; capture now uses identity dedupe + CHIPS-safe queries (`domain` + `partitionKey:{}`, not `url`+partition) and logs `capture_debug` on POST /api/session.
+- Reload extension from `dist/` and recapture; expect cookie_count > 3 and/or capture_debug.queryHits showing partAny hits.
+- Shipped `extension-three-tab-parity`; Homebrew spikes / v0.1.0 still open.

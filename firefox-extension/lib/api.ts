@@ -58,10 +58,18 @@ export class ApiClient {
     return {} as T;
   }
 
-  async captureSession(jiraUrl: string, cookies: Cookie[]): Promise<{ message: string }> {
+  async captureSession(
+    jiraUrl: string,
+    cookies: Cookie[],
+    captureDebug?: Record<string, unknown>
+  ): Promise<{ message: string }> {
+    const body: Record<string, unknown> = { jira_url: jiraUrl, cookies };
+    if (captureDebug) {
+      body.capture_debug = captureDebug;
+    }
     return this.request('/api/session', {
       method: 'POST',
-      body: JSON.stringify({ jira_url: jiraUrl, cookies }),
+      body: JSON.stringify(body),
     });
   }
 
