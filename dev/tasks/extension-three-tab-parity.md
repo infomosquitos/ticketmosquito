@@ -42,7 +42,7 @@ All OQs locked — ready to implement (or split into backend-then-extension comm
 | 5 | Issue tab compare metric | locked | Live vs stored **`updated`** timestamps (plus summary when available). Badge for `body_format` (`adf` / `wiki` / `rendered`), analogous to SM’s CSF/HTML engine chip |
 | 6 | Content script / detector | locked | **A)** Content script + `issue-detector` (SM pattern); Chrome + Firefox. See Notes |
 | 7 | Auto-renew | locked | **Port SM auto-renew as-is** for Jira hosts (Settings checkbox → background interval capture/validate) |
-| 8 | Duplicate cookie / browser-probe cleanup | locked | **Do in this task** — dedupe captured cookies by name (keep best/last); remove or stop logging the always-401 extension `fetch` probe as a validation signal |
+| 8 | Duplicate cookie / browser-probe cleanup | locked | Remove always-401 browser `fetch` probe. Dedupe only **exact** duplicates (name+domain+path+value) — do **not** collapse same-name partition variants (needed for hosted Jira `/myself`) |
 | 9 | Ordering vs TS7 / Homebrew | locked | **Do this task before `upgrade-extensions-typescript-7`.** Stay on TS ~5.9 so SpaceMosquito extension code can be paste-adapted without a TS7 toolchain fight (SM is also TS5-era). Homebrew tap spikes remain **independent** (orthogonal distribution work) |
 
 ## Non-goals

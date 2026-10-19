@@ -144,20 +144,23 @@ export async function captureCookies(
       };
     });
 
-  // Dedupe by cookie name — keep last occurrence (jar scan vs url query ordering).
-  const byName = new Map<string, Cookie>();
+  // Dedupe only exact duplicates (same name+domain+path+value). Do NOT collapse
+  // by name alone — corporate Jira often has partition-distinct JSESSIONID /
+  // atlassian.xsrf.token pairs; sending both is required for /myself to succeed.
+  const byIdentity = new Map<string, Cookie>();
   for (const c of mapped) {
-    byName.set(c.name, c);
+    byIdentity.set(`${c.name}|${c.domain}|${c.path}|${c.value}`, c);
   }
-  const cookies = Array.from(byName.values());
+  const cookies = Array.from(byIdentity.values());
 
   console.log('[ticketmosquito] cookie capture', {
     tabUrl,
     cookieStoreId,
     rawCount: rawCookies.length,
     rawNames,
+    keptCount: cookies.length,
     keptNames: cookies.map((c) => c.name),
-    keptDomains: cookies.map((c) => `${c.name}@${c.domain}`),
+    keptMeta: cookies.map((c) => `${c.name}@${c.domain} len=${c.value.length}`),
   });
 
   return { cookies, rawCount: rawCookies.length, rawNames };
