@@ -67,10 +67,15 @@ func (h *Handler) CreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	names := make([]string, 0, len(req.Cookies))
+	for _, c := range req.Cookies {
+		names = append(names, c.Name)
+	}
 	h.log.Infow("session upserted",
 		"url", req.JiraURL,
 		"host", session.HostnameKey(req.JiraURL),
-		"cookie_count", len(req.Cookies))
+		"cookie_count", len(req.Cookies),
+		"cookie_names", names)
 
 	writeJSON(w, http.StatusCreated, map[string]interface{}{
 		"message":      "session saved",

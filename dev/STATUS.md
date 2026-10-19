@@ -20,6 +20,5 @@ Run spikes and lock OQs before implementing the tap / extension CLI.
 
 ## Session notes
 
-- Drafted `homebrew-tap-distribution` + spikes `spike-homebrew-tap-formula`, `spike-extension-coinstall` (task docs only).
-- Drafted `upgrade-extensions-typescript-7` (TS7 ≠ drop-in for ts-loader; pin ~5.9 until then).
-- v0.1.0 changelog prep still uncommitted/untagged; task cleanup still deferred.
+- Debugging hosted Jira validate: was keeping 1 cookie via name filter → 401. Now capture all URL/parent-domain cookies; richer probe logs (names, Location, WWW-Authenticate, body preview); Cookie header via AsHeaders.
+- Drafted `homebrew-tap-distribution` + spikes (task docs only); `upgrade-extensions-typescript-7`; v0.1.0 changelog still uncommitted/untagged.

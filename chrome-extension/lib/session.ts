@@ -1,20 +1,6 @@
 import type { Cookie } from './types';
 import type { ApiClient } from './api';
 
-// Name substrings that usually carry Jira / SSO auth. Keep broad enough for
-// corporate IdPs (OIDC, Keycloak, ALB) — still not every tracking cookie.
-const AUTH_COOKIE_PATTERNS = [
-  'session', 'token', 'sso', 'atlassian', 'aui',
-  'seraph', 'crowd', 'remember', 'jsession',
-  'openid', 'oidc', 'oauth', 'saml', 'keycloak', 'okta',
-  'auth', 'awsalb', 'alb', 'mod_auth',
-];
-
-function shouldKeepCookie(name: string): boolean {
-  const lower = name.toLowerCase();
-  return AUTH_COOKIE_PATTERNS.some((p) => lower.includes(p));
-}
-
 function normalizeSameSite(value?: string): string {
   if (!value) return 'Lax';
   if (value === 'no_restriction' || value === 'none') return 'None';
@@ -40,16 +26,30 @@ export function isJiraUrl(url: string): boolean {
   );
 }
 
+/** Hostname plus registrable parents (jira.a.b → a.b, b skipped if too short). */
+function domainCandidates(hostname: string): string[] {
+  const parts = hostname.split('.').filter(Boolean);
+  const out: string[] = [];
+  for (let i = 0; i < parts.length - 1; i++) {
+    const d = parts.slice(i).join('.');
+    if (d.includes('.')) {
+      out.push(d);
+      out.push('.' + d);
+    }
+  }
+  return [...new Set(out)];
+}
+
 /**
- * Collect cookies the browser would send to tabUrl (includes parent-domain SSO
- * cookies). Also scan hostname / .hostname for completeness.
+ * Collect every cookie the browser would send to tabUrl, plus explicit parent-
+ * domain scans. Corporate SSO often uses unusual cookie names — do not filter
+ * by name (a name allowlist caused 401s with only JSESSIONID kept).
  */
 async function getAllCookiesForTab(tabUrl: string): Promise<chrome.cookies.Cookie[]> {
   const hostname = new URL(tabUrl).hostname;
   const queries: chrome.cookies.GetAllDetails[] = [
     { url: tabUrl },
-    { domain: hostname },
-    { domain: '.' + hostname },
+    ...domainCandidates(hostname).map((domain) => ({ domain })),
   ];
   const byKey = new Map<string, chrome.cookies.Cookie>();
   for (const q of queries) {
@@ -73,18 +73,19 @@ export async function captureCookies(tabUrl: string): Promise<{
   const domain = new URL(tabUrl).hostname;
   const rawCookies = await getAllCookiesForTab(tabUrl);
   const rawNames = [...new Set(rawCookies.map((c) => c.name).filter(Boolean))];
-  const filtered = rawCookies.filter((c) => c.name && shouldKeepCookie(c.name));
 
-  const cookies = filtered.map((c) => ({
-    name: c.name,
-    value: c.value,
-    domain: c.domain || domain,
-    path: c.path || '/',
-    expires: c.expirationDate,
-    secure: !!c.secure,
-    httpOnly: !!c.httpOnly,
-    sameSite: normalizeSameSite(c.sameSite),
-  }));
+  const cookies = rawCookies
+    .filter((c) => c.name)
+    .map((c) => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain || domain,
+      path: c.path || '/',
+      expires: c.expirationDate,
+      secure: !!c.secure,
+      httpOnly: !!c.httpOnly,
+      sameSite: normalizeSameSite(c.sameSite),
+    }));
 
   return { cookies, rawCount: rawCookies.length, rawNames };
 }
@@ -95,13 +96,12 @@ export async function captureAndSave(
 ): Promise<{ success: boolean; cookieCount: number; error?: string }> {
   const { cookies, rawNames } = await captureCookies(jiraUrl);
   if (cookies.length === 0) {
-    const sample = rawNames.slice(0, 12).join(', ') || '(none)';
     return {
       success: false,
       cookieCount: 0,
       error:
-        `No Jira/SSO session cookies matched. Browser saw: ${sample}. ` +
-        `Stay logged in on this tab, then capture again.`,
+        `No cookies visible for this tab (saw: ${rawNames.slice(0, 12).join(', ') || 'none'}). ` +
+        `Stay logged in, then capture again.`,
     };
   }
   await apiClient.captureSession(jiraUrl, cookies);

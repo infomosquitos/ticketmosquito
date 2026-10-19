@@ -3,6 +3,7 @@ package session
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -109,6 +110,16 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 	}
 	probes := validationProbes(s.Flavor, pageURL)
 
+	if s.log.Enabled() {
+		s.log.Infow("session validation starting",
+			"root", rootURL,
+			"page", pageURL,
+			"flavor", string(s.Flavor),
+			"cookies", len(s.Cookies),
+			"cookie_meta", cookieDebugMeta(s.Cookies),
+		)
+	}
+
 	client := &http.Client{
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -130,18 +141,30 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 		if err != nil {
 			continue
 		}
-		for _, c := range s.Cookies {
-			req.AddCookie(&http.Cookie{
-				Name: c.Name, Value: c.Value, Domain: c.Domain, Path: c.Path,
-				Expires: time.Unix(c.Expires, 0), Secure: c.Secure, HttpOnly: c.HTTPOnly,
-			})
+		// Set Cookie as a raw header (same as AsHeaders). AddCookie sanitizes
+		// values and can drop/mangle corporate SSO tokens.
+		for k, v := range s.AsHeaders() {
+			req.Header.Set(k, v)
 		}
-		req.Header.Set("X-Atlassian-Token", "no-check")
-		req.Header.Set("Accept", "application/json")
+		if s.log.Enabled() {
+			cookieHdr := req.Header.Get("Cookie")
+			s.log.Infow("session validation request headers",
+				"url", testURL,
+				"cookie_header_len", len(cookieHdr),
+				"cookie_names_in_header", cookieNamesFromHeader(cookieHdr),
+				"accept", req.Header.Get("Accept"),
+				"x_atlassian_token", req.Header.Get("X-Atlassian-Token"),
+				"user_agent", req.Header.Get("User-Agent"),
+			)
+		}
 
 		resp, err := client.Do(req)
 		if err != nil {
 			lastErr = err
+			if s.log.Enabled() {
+				s.log.Infow("session validation probe transport error",
+					"url", testURL, "err", err.Error())
+			}
 			continue
 		}
 		outcome := classifyValidationResponse(resp)
@@ -155,6 +178,10 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 				"status", outcome.status,
 				"reason", outcome.reason,
 				"cookies", len(s.Cookies),
+				"location", outcome.location,
+				"www_authenticate", outcome.wwwAuth,
+				"content_type", outcome.contentType,
+				"body_preview", outcome.bodyPreview,
 			)
 		}
 
@@ -245,45 +272,124 @@ func (k validationKind) String() string {
 }
 
 type validationOutcome struct {
-	kind   validationKind
-	name   string
-	status int
-	reason string
+	kind        validationKind
+	name        string
+	status      int
+	reason      string
+	location    string
+	wwwAuth     string
+	contentType string
+	bodyPreview string
 }
 
 func classifyValidationResponse(resp *http.Response) validationOutcome {
 	status := resp.StatusCode
+	ct := resp.Header.Get("Content-Type")
+	loc := resp.Header.Get("Location")
+	www := resp.Header.Get("WWW-Authenticate")
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+
+	base := validationOutcome{
+		status:      status,
+		location:    loc,
+		wwwAuth:     www,
+		contentType: ct,
+		bodyPreview: sanitizePreview(body, 240),
+	}
+
 	if status == http.StatusMovedPermanently ||
 		status == http.StatusFound ||
 		status == http.StatusSeeOther ||
 		status == http.StatusTemporaryRedirect ||
 		status == http.StatusPermanentRedirect {
-		return validationOutcome{kind: validationSSOIntercept, status: status, reason: "redirect"}
+		base.kind = validationSSOIntercept
+		base.reason = "redirect"
+		return base
 	}
 	if status == http.StatusUnauthorized || status == http.StatusForbidden {
-		return validationOutcome{kind: validationUnauthorized, status: status}
+		base.kind = validationUnauthorized
+		return base
 	}
 	if status == http.StatusNotFound {
-		return validationOutcome{kind: validationNotFound, status: status}
+		base.kind = validationNotFound
+		return base
 	}
 	if status != http.StatusOK {
-		return validationOutcome{kind: validationSSOIntercept, status: status, reason: "non-200"}
+		base.kind = validationSSOIntercept
+		base.reason = "non-200"
+		return base
 	}
 
-	ct := resp.Header.Get("Content-Type")
 	if !strings.Contains(strings.ToLower(ct), "application/json") {
-		return validationOutcome{kind: validationSSOIntercept, status: status, reason: "non-json content-type"}
+		base.kind = validationSSOIntercept
+		base.reason = "non-json content-type"
+		return base
 	}
 
 	var myself map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&myself); err != nil {
-		return validationOutcome{kind: validationSSOIntercept, status: status, reason: "json decode failed"}
+	if err := json.Unmarshal(body, &myself); err != nil {
+		base.kind = validationSSOIntercept
+		base.reason = "json decode failed"
+		return base
 	}
 	name, ok := identityFromMyself(myself)
 	if !ok {
-		return validationOutcome{kind: validationSSOIntercept, status: status, reason: "missing displayName/username"}
+		base.kind = validationSSOIntercept
+		base.reason = "missing displayName/username"
+		return base
 	}
-	return validationOutcome{kind: validationOK, name: name, status: status}
+	base.kind = validationOK
+	base.name = name
+	return base
+}
+
+func sanitizePreview(body []byte, n int) string {
+	if len(body) == 0 {
+		return ""
+	}
+	if len(body) > n {
+		body = body[:n]
+	}
+	s := string(body)
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	return strings.TrimSpace(s)
+}
+
+func cookieDebugMeta(cookies []Cookie) []map[string]interface{} {
+	out := make([]map[string]interface{}, 0, len(cookies))
+	for _, c := range cookies {
+		out = append(out, map[string]interface{}{
+			"name":     c.Name,
+			"domain":   c.Domain,
+			"path":     c.Path,
+			"secure":   c.Secure,
+			"httpOnly": c.HTTPOnly,
+			"sameSite": c.SameSite,
+			"valueLen": len(c.Value),
+			"expires":  c.Expires,
+		})
+	}
+	return out
+}
+
+func cookieNamesFromHeader(header string) []string {
+	if header == "" {
+		return nil
+	}
+	parts := strings.Split(header, ";")
+	names := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p == "" {
+			continue
+		}
+		name, _, _ := strings.Cut(p, "=")
+		if name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func identityFromMyself(myself map[string]interface{}) (string, bool) {
