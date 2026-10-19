@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -61,18 +62,28 @@ func (s *Session) SetLogger(l logging.Sugar) {
 	s.log = l
 }
 
+// browserUserAgent mimics a normal desktop Chrome so corporate WAFs / Seraph
+// do not treat Go's default User-Agent as a bot.
+const browserUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
 // AsHeaders returns Cookie + X-Atlassian-Token headers for REST calls.
 func (s *Session) AsHeaders() map[string]string {
 	headers := make(map[string]string)
-	if len(s.Cookies) > 0 {
-		parts := make([]string, 0, len(s.Cookies))
-		for _, c := range s.Cookies {
+	cookies := CookiesForURL(s.Cookies, s.SiteURL)
+	if len(cookies) > 0 {
+		parts := make([]string, 0, len(cookies))
+		for _, c := range cookies {
 			parts = append(parts, fmt.Sprintf("%s=%s", c.Name, c.Value))
 		}
 		headers["Cookie"] = strings.Join(parts, "; ")
 	}
 	headers["X-Atlassian-Token"] = "no-check"
 	headers["Accept"] = "application/json"
+	headers["User-Agent"] = browserUserAgent
+	if root := jira.BaseURL(s.SiteURL); root != "" {
+		headers["Referer"] = root + "/"
+		headers["Origin"] = root
+	}
 	return headers
 }
 
@@ -109,14 +120,17 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 		pageURL = s.SiteURL
 	}
 	probes := validationProbes(s.Flavor, pageURL)
+	applicable := CookiesForURL(s.Cookies, rootURL)
 
 	if s.log.Enabled() {
 		s.log.Infow("session validation starting",
 			"root", rootURL,
 			"page", pageURL,
 			"flavor", string(s.Flavor),
-			"cookies", len(s.Cookies),
+			"cookies_stored", len(s.Cookies),
+			"cookies_applicable", len(applicable),
 			"cookie_meta", cookieDebugMeta(s.Cookies),
+			"cookie_meta_applicable", cookieDebugMeta(applicable),
 		)
 	}
 
@@ -155,6 +169,7 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 				"accept", req.Header.Get("Accept"),
 				"x_atlassian_token", req.Header.Get("X-Atlassian-Token"),
 				"user_agent", req.Header.Get("User-Agent"),
+				"referer", req.Header.Get("Referer"),
 			)
 		}
 
@@ -177,10 +192,11 @@ func (s *Session) ValidateWithJira(siteURL string, timeoutSeconds int) (*Validat
 				"kind", outcome.kind.String(),
 				"status", outcome.status,
 				"reason", outcome.reason,
-				"cookies", len(s.Cookies),
+				"cookies_applicable", len(applicable),
 				"location", outcome.location,
 				"www_authenticate", outcome.wwwAuth,
 				"content_type", outcome.contentType,
+				"set_cookie_names", setCookieNames(outcome.setCookie),
 				"body_preview", outcome.bodyPreview,
 			)
 		}
@@ -224,10 +240,12 @@ type validationProbe struct {
 func validationProbes(flavor SessionFlavor, pageURL string) []validationProbe {
 	cloud := validationProbe{"/rest/api/3/myself", FlavorCloud}
 	server := validationProbe{"/rest/api/2/myself", FlavorServer}
+	// Cookie-session check used by Jira Server/DC (returns {"name":...}).
+	authSession := validationProbe{"/rest/auth/1/session", FlavorServer}
 	if preferServerProbes(flavor, pageURL) {
-		return []validationProbe{server, cloud}
+		return []validationProbe{server, authSession, cloud}
 	}
-	return []validationProbe{cloud, server}
+	return []validationProbe{cloud, server, authSession}
 }
 
 func preferServerProbes(flavor SessionFlavor, pageURL string) bool {
@@ -279,6 +297,7 @@ type validationOutcome struct {
 	location    string
 	wwwAuth     string
 	contentType string
+	setCookie   []string
 	bodyPreview string
 }
 
@@ -294,6 +313,7 @@ func classifyValidationResponse(resp *http.Response) validationOutcome {
 		location:    loc,
 		wwwAuth:     www,
 		contentType: ct,
+		setCookie:   resp.Header.Values("Set-Cookie"),
 		bodyPreview: sanitizePreview(body, 240),
 	}
 
@@ -392,6 +412,18 @@ func cookieNamesFromHeader(header string) []string {
 	return names
 }
 
+func setCookieNames(values []string) []string {
+	names := make([]string, 0, len(values))
+	for _, v := range values {
+		name, _, _ := strings.Cut(v, "=")
+		name = strings.TrimSpace(name)
+		if name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 func identityFromMyself(myself map[string]interface{}) (string, bool) {
 	if name, ok := myself["displayName"].(string); ok {
 		if name = strings.TrimSpace(name); name != "" {
@@ -403,5 +435,45 @@ func identityFromMyself(myself map[string]interface{}) (string, bool) {
 			return name, true
 		}
 	}
+	// /rest/auth/1/session and some Server payloads use "name".
+	if name, ok := myself["name"].(string); ok {
+		if name = strings.TrimSpace(name); name != "" {
+			return name, true
+		}
+	}
 	return "", false
+}
+
+// CookiesForURL returns cookies whose Domain would be sent to targetURL.
+// Drops unrelated sibling-host cookies (e.g. portal.example.com NetScaler jars
+// captured while walking example.com).
+func CookiesForURL(cookies []Cookie, targetURL string) []Cookie {
+	host := HostnameKey(targetURL)
+	if host == "" {
+		return append([]Cookie(nil), cookies...)
+	}
+	// HostnameKey may include :port — cookie domains usually do not.
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		host = h
+	}
+	host = strings.ToLower(host)
+	out := make([]Cookie, 0, len(cookies))
+	for _, c := range cookies {
+		if cookieDomainMatchesHost(c.Domain, host) {
+			out = append(out, c)
+		}
+	}
+	return out
+}
+
+func cookieDomainMatchesHost(cookieDomain, host string) bool {
+	dom := strings.ToLower(strings.TrimSpace(cookieDomain))
+	if dom == "" {
+		return false
+	}
+	dom = strings.TrimPrefix(dom, ".")
+	if dom == host {
+		return true
+	}
+	return strings.HasSuffix(host, "."+dom)
 }

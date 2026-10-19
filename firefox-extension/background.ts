@@ -1,5 +1,5 @@
 import { ApiClient } from './lib/api';
-import { captureAndSave, isJiraUrl } from './lib/session';
+import { captureAndSave, isJiraUrl, probeMyselfInBrowser } from './lib/session';
 
 const DEFAULT_BACKEND_URL = 'http://127.0.0.1:11043';
 
@@ -70,10 +70,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           return;
         }
         try {
-          const result = await captureAndSave(tabUrl, api);
+          const cookieStoreId = message.cookieStoreId
+            ? String(message.cookieStoreId)
+            : undefined;
+          const result = await captureAndSave(tabUrl, api, cookieStoreId);
           if (result.success) {
             try {
-              await api.validateSession(tabUrl);
+              const browserProbe = await probeMyselfInBrowser(tabUrl);
+              await api.validateSession(tabUrl, browserProbe);
             } catch {
               /* validate best-effort */
             }
@@ -95,7 +99,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       }
       case 'VALIDATE_SESSION': {
         try {
-          const result = await api.validateSession(message.url);
+          const tabUrl = String(message.url || '');
+          const browserProbe = tabUrl ? await probeMyselfInBrowser(tabUrl) : undefined;
+          const result = await api.validateSession(tabUrl || undefined, browserProbe);
           sendResponse(result);
         } catch (err) {
           sendResponse({ valid: false, message: (err as Error).message });

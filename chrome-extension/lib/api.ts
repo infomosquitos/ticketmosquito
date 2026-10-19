@@ -64,10 +64,16 @@ export class ApiClient {
     return this.request(`/api/session/status${q}`);
   }
 
-  async validateSession(jiraUrl?: string): Promise<{ valid: boolean; message: string; flavor?: string }> {
+  async validateSession(
+    jiraUrl?: string,
+    browserProbe?: unknown
+  ): Promise<{ valid: boolean; message: string; flavor?: string }> {
+    const body: Record<string, unknown> = {};
+    if (jiraUrl) body.jira_url = jiraUrl;
+    if (browserProbe) body.browser_probe = browserProbe;
     return this.request('/api/session/validate', {
       method: 'POST',
-      body: JSON.stringify(jiraUrl ? { jira_url: jiraUrl } : {}),
+      body: JSON.stringify(body),
     });
   }
 

@@ -101,7 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setMsg('Capturing…');
     const result = await send<{ success: boolean; cookieCount?: number; error?: string }>(
       'CAPTURE_SESSION',
-      { url: tab.url }
+      {
+        url: tab.url,
+        cookieStoreId: (tab as chrome.tabs.Tab & { cookieStoreId?: string }).cookieStoreId,
+      }
     );
     if (result.success) {
       setMsg(`Saved ${result.cookieCount} cookies`);

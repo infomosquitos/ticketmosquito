@@ -20,5 +20,5 @@ Run spikes and lock OQs before implementing the tap / extension CLI.
 
 ## Session notes
 
-- Debugging hosted Jira validate: was keeping 1 cookie via name filter → 401. Now capture all URL/parent-domain cookies; richer probe logs (names, Location, WWW-Authenticate, body preview); Cookie header via AsHeaders.
+- Hosted Jira validate: only `JSESSIONID` on jira host (wp NetScaler cookies unrelated). Capture aligned with SpaceMosquito (hostname-only + partitionKey/storeId); host-scoped cookies; browser UA/Referer; `/rest/auth/1/session`; extension browser-jar probe logged as `browser-side session probe`.
 - Drafted `homebrew-tap-distribution` + spikes (task docs only); `upgrade-extensions-typescript-7`; v0.1.0 changelog still uncommitted/untagged.

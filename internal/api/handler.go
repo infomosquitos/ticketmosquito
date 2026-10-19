@@ -155,9 +155,16 @@ func (h *Handler) ValidateSession(w http.ResponseWriter, r *http.Request) {
 	encKey := h.cfg.Session.EncryptionKey
 
 	var req struct {
-		JiraURL string `json:"jira_url"`
+		JiraURL      string      `json:"jira_url"`
+		BrowserProbe interface{} `json:"browser_probe"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if req.BrowserProbe != nil {
+		h.log.Infow("browser-side session probe (extension cookie jar)",
+			"url", req.JiraURL,
+			"probe", req.BrowserProbe)
+	}
 
 	var sess *session.Session
 	var err error

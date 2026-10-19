@@ -71,11 +71,19 @@ func TestStore_UpsertTwoHosts(t *testing.T) {
 
 func TestSession_AsHeaders(t *testing.T) {
 	s := &Session{
-		Cookies: []Cookie{{Name: "a", Value: "1"}, {Name: "b", Value: "2"}},
+		SiteURL: "https://jira.example.com/browse/X-1",
+		Cookies: []Cookie{
+			{Name: "a", Value: "1", Domain: "jira.example.com"},
+			{Name: "b", Value: "2", Domain: "jira.example.com"},
+			{Name: "noise", Value: "x", Domain: "other.example.com"},
+		},
 	}
 	h := s.AsHeaders()
 	if h["Cookie"] != "a=1; b=2" {
 		t.Fatalf("Cookie = %q", h["Cookie"])
+	}
+	if h["User-Agent"] == "" {
+		t.Fatal("expected User-Agent")
 	}
 	if h["X-Atlassian-Token"] != "no-check" {
 		t.Fatalf("missing X-Atlassian-Token")

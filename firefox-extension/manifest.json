@@ -7,7 +7,8 @@
     "cookies",
     "storage",
     "activeTab",
-    "tabs"
+    "tabs",
+    "contextualIdentities"
   ],
   "icons": {
     "16": "assets/icon-inactive-16.png",
@@ -27,7 +28,7 @@
     "http://127.0.0.1:11043/*"
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; style-src 'self'; object-src 'self'; connect-src 'self' http://localhost:11043 http://127.0.0.1:11043"
+    "extension_pages": "script-src 'self'; style-src 'self'; object-src 'self'; connect-src 'self' http://localhost:11043 http://127.0.0.1:11043 https: http:"
   },
   "background": {
     "scripts": [
