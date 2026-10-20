@@ -68,3 +68,7 @@ Prefer **OQ1 B or C**: stop relying on `ts-loader` for typechecked emit; use a m
 ```
 
 in both extension `package.json` files until this task ships.
+
+### CI
+
+`Extension Build` (`.github/workflows/extension-build.yml`) runs `npm ci && npm run build` for both extensions on PRs / pushes to `main` when extension paths change — enough to fail a Dependabot TS7 bump before merge (if the check is required on the branch).

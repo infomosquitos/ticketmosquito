@@ -20,6 +20,5 @@ Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
 
 ## Session notes
 
-- Crawl works; Projects-tab progress was broken because `projectKeyFromUrl` ignored `/browse/SK`. Fixed + Server/DC reports total early during discovery.
-- Restart `make serve`, reload extension from `dist/`.
-- Shipped `extension-three-tab-parity`; Homebrew spikes / v0.1.0 still open.
+- Added `.github/workflows/extension-build.yml` — `npm ci` + `npm run build` for Chrome/Firefox on PRs and pushes to `main` (path-filtered). Mark that check required on `main` in GitHub if merges should be blocked.
+- Crawl/progress fixes and three-tab parity shipped earlier; Homebrew spikes / v0.1.0 / TS7 upgrade still open.
