@@ -801,11 +801,20 @@ async function loadProjects() {
     const currentKey = currentIssueInfo?.projectKey || '';
 
     if (currentKey && !spaces.some((s) => s.project_key === currentKey)) {
+      // Detector fills projectURL; fall back to tab origin + /browse/KEY so play works
+      // before the project is stored in the backend.
+      let projectUrl = (currentIssueInfo?.projectURL || '').trim();
+      if (!projectUrl && currentIssueInfo?.tabUrl) {
+        try {
+          const u = new URL(currentIssueInfo.tabUrl);
+          projectUrl = `${u.origin}/browse/${encodeURIComponent(currentKey)}`;
+        } catch { /* ignore */ }
+      }
       spaces = [
         {
           project_key: currentKey,
-          project_name: currentIssueInfo?.spaceName || currentKey,
-          project_url: currentIssueInfo?.spaceURL || '',
+          project_name: currentIssueInfo?.projectName || currentKey,
+          project_url: projectUrl,
           issues_crawled: 0,
           issues_total: 0,
         },
