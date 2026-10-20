@@ -4,6 +4,10 @@ All notable changes to this project. Format based on [Keep a Changelog](https://
 
 ## [Unreleased]
 
+### Changed
+
+- Browser extensions build with TypeScript 7 + esbuild (`tsc --noEmit` then bundle); webpack/ts-loader removed.
+
 ### Fixed
 
 - Server start crash

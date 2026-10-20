@@ -4,6 +4,8 @@ Prerequisites: run `ticketmosquito serve` (default `http://127.0.0.1:11043`).
 
 ## Build from source
 
+Requires **Node.js ≥ 16.20** (CI uses 22). Each extension `npm run build` runs TypeScript 7 typecheck (`tsc --noEmit`) then **esbuild** bundling.
+
 ```sh
 cd chrome-extension   # or firefox-extension
 npm install

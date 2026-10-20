@@ -37,6 +37,8 @@ ls dist/
 
 ## Browser extensions
 
+Needs Node.js ≥ 16.20 (TypeScript 7). Build uses `tsc --noEmit` + esbuild (not webpack).
+
 ```sh
 make build-extensions
 ```

@@ -6,7 +6,10 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "lib": ["ES2020", "DOM"]
+    "noEmit": true,
+    "lib": ["ES2020", "DOM"],
+    "types": ["chrome"]
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts"],
+  "exclude": ["dist", "node_modules"]
 }

@@ -1,16 +1,17 @@
 {
   "name": "ticketmosquito-chrome-extension",
   "version": "0.1.0",
+  "engines": {
+    "node": ">=16.20.0"
+  },
   "scripts": {
-    "build": "webpack --mode production",
-    "dev": "webpack --mode development"
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && node esbuild.mjs",
+    "dev": "node esbuild.mjs --dev --watch"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",
-    "copy-webpack-plugin": "^14.0.0",
-    "ts-loader": "^9.5.1",
-    "typescript": "~5.9.3",
-    "webpack": "^5.92.0",
-    "webpack-cli": "^7.2.3"
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
   }
 }

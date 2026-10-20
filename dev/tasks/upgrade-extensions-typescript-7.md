@@ -1,7 +1,7 @@
 # Upgrade Chrome/Firefox extensions to TypeScript 7
 
 - **Task ID:** `upgrade-extensions-typescript-7`
-- **Status:** backlog
+- **Status:** done
 - **Parent / blocked by:** Prefer after `extension-three-tab-parity` (paste SM on TS5 first; see that task OQ9)
 
 ## Problem
@@ -18,11 +18,11 @@ Both `chrome-extension` and `firefox-extension` build cleanly on **TypeScript 7*
 
 | # | Topic | Status | Decision |
 |---|--------|--------|----------|
-| 1 | Build approach | open | **A)** Keep webpack; replace/adapt loader once TS7-compatible (`ts-loader` successor, custom loader, or `tsgo` emit + copy). **B)** Switch extensions to `esbuild`/`tsx` (transpile-only) + keep `tsc`/TS7 for typecheck. **C)** Native `tsgo`/TS7 CLI as primary emit, webpack only for bundling JS. |
-| 2 | Typecheck vs emit | open | Strict: `tsc`/`tsgo --noEmit` in CI separate from bundler; or single-step typed emit if tooling supports it |
-| 3 | Shared config | open | Keep duplicated `package.json`/`tsconfig` per extension vs extract shared build config package |
-| 4 | Dependabot guard | open | After upgrade: allow `typescript` majors; until then ignore `typescript` major in both npm groups (or pin `~5.9`) |
-| 5 | Minimum Node | open | Align with TS7 `engines` (`>=16.20`) and current CI Node 22 — confirm no lower bound needed locally |
+| 1 | Build approach | locked | **B** — Drop webpack/`ts-loader`. **esbuild** bundles (strip types); **TypeScript 7** (`tsc`/`tsgo --noEmit`) typechecks only. Rejected: **A** (embeds broken compiler API); **C** (tsgo emit still needs a bundler → extra step for the same result). |
+| 2 | Typecheck vs emit | locked | Separate typecheck in `npm run build` / CI (`tsc --noEmit` then esbuild). Transpile-only without check is not allowed. |
+| 3 | Shared config | locked | Keep duplicated `package.json` / `tsconfig` / `esbuild.mjs` per extension. No shared build package — duplication was fine; esbuild doesn’t change that (separate manifests + Dependabot dirs). |
+| 4 | Dependabot guard | locked | **Allow** `typescript` majors (no Dependabot ignore). Guard is green CI (`Extension Build`) + Dependabot’s green-build requirement — not an ignore/pin policy after this task ships. |
+| 5 | Minimum Node | locked | Align with TS7: `engines.node` `>=16.20.0`. CI stays on Node **22**. |
 
 ## Non-goals
 
@@ -36,15 +36,15 @@ Both `chrome-extension` and `firefox-extension` build cleanly on **TypeScript 7*
 2. Lock OQ1 after a short spike/prototype on one extension.
 3. Apply the same toolchain to Chrome and Firefox; `npm run build` green for both.
 4. Update `scripts/build-extension-zips.sh` / CI if scripts change.
-5. Adjust `.github/dependabot.yml` ignore rules once TS7 is green (or add ignores until then).
+5. No Dependabot `ignore` for typescript majors (OQ4 locked allow); rely on `Extension Build` + Dependabot green-build requirement.
 6. Note in `docs/INSTALL-FROM-SOURCE.md` or `dev/README.md` if the build prerequisite story changes.
 
 ## Done when
 
-- [ ] `chrome-extension` and `firefox-extension` `npm ci && npm run build` succeed with `typescript@7` (or current 7.x).
-- [ ] Typecheck still catches real errors (not transpile-only without a check step, unless OQ2 explicitly allows).
-- [ ] Dependabot policy updated so TS7 isn’t a footgun (allow or ignore majors intentionally).
-- [ ] Brief note in Notes or README on how to build extensions after the change.
+- [x] `chrome-extension` and `firefox-extension` `npm ci && npm run build` succeed with `typescript@7` (or current 7.x).
+- [x] Typecheck still catches real errors (not transpile-only without a check step, unless OQ2 explicitly allows).
+- [x] Dependabot allowed to propose typescript majors; broken bumps fail `Extension Build` (green-build required).
+- [x] Brief note in Notes or README on how to build extensions after the change.
 
 ## Notes
 
@@ -57,18 +57,16 @@ require('typescript')  // TS 7.0 → { version, versionMajorMinor } only
 
 TS7 is the native/`tsgo`-oriented package surface; `ts-loader@9` still assumes the TS5 JS API. PeerDependency `typescript: '*'` does **not** mean runtime compatibility.
 
-### Suggested leaning (non-locked)
+### Shipped approach (OQ1 B)
 
-Prefer **OQ1 B or C**: stop relying on `ts-loader` for typechecked emit; use a modern bundler transpile + explicit `tsgo`/`tsc` typecheck in `npm run build` (or a `prebuild` script). Keeps webpack if we want, without waiting on `ts-loader`.
-
-### Pin today
-
-```json
-"typescript": "~5.9.3"
+```text
+npm run build  →  tsc --noEmit  &&  node esbuild.mjs
 ```
 
-in both extension `package.json` files until this task ships.
+- Deps: `typescript@^7`, `esbuild`, `@types/chrome` (removed `webpack`, `webpack-cli`, `ts-loader`, `copy-webpack-plugin`).
+- esbuild: three browser entries (`background`, `popup`, `content`) + copy manifest/HTML/CSS/assets.
+- Same toolchain for Chrome and Firefox; `engines.node`: `>=16.20.0`.
 
 ### CI
 
-`Extension Build` (`.github/workflows/extension-build.yml`) runs `npm ci && npm run build` for both extensions on PRs / pushes to `main` when extension paths change — enough to fail a Dependabot TS7 bump before merge (if the check is required on the branch).
+`Extension Build` (`.github/workflows/extension-build.yml`) runs `npm ci && npm run build` for both extensions on PRs / pushes when extension paths change.

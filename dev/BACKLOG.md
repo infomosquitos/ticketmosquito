@@ -117,10 +117,10 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 - notes: Architecture changes (CLI, share/, data-dir) allowed.
 
 ## upgrade-extensions-typescript-7
-- status: backlog
+- status: done
 - goal: Make chrome/firefox extension builds work on TypeScript 7 (replace ts-loader-era API assumption).
 - done_when: See `dev/tasks/upgrade-extensions-typescript-7.md`.
-- notes: Dependabot TS7 merge broke ts-loader; pinned ~5.9.3 for now.
+- notes: esbuild + typescript@7 (`tsc --noEmit`); webpack/ts-loader removed; engines >=16.20.
 
 ## extension-three-tab-parity
 - status: done
