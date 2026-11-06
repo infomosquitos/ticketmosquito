@@ -2,7 +2,7 @@
 
 - **Task ID:** `homebrew-tap-distribution`
 - **Status:** backlog
-- **Parent / blocked by:** blocked_by: `spike-homebrew-tap-formula`, `spike-extension-coinstall`
+- **Parent / blocked by:** blocked_by: `homebrew-tap-cask`, `spike-extension-coinstall`
 
 ## Problem
 
@@ -13,11 +13,12 @@ macOS users currently install from source or by manually downloading GitHub Rele
 Ship a maintained Homebrew tap so a user can roughly:
 
 ```sh
-brew tap <org>/ticketmosquito   # exact tap name TBD by spike
-brew install ticketmosquito
+brew install --cask infomosquitos/tap/ticketmosquito
 ticketmosquito init && ticketmosquito serve
-# then a short, documented extension path (CLI-assisted) — TBD by spike
+# then extension path — caveats now; assisted CLI TBD by co-install spike
 ```
+
+Existing tap: [`infomosquitos/homebrew-tap`](https://github.com/infomosquitos/homebrew-tap) (`spacemosquito` cask today).
 
 …and end with binary on `PATH` plus a clear co-install path for the Ticket Mosquito extension(s).
 
@@ -25,10 +26,10 @@ ticketmosquito init && ticketmosquito serve
 
 | # | Topic | Status | Decision |
 |---|--------|--------|----------|
-| 1 | Tap + formula shape | open | **Spike:** [`spike-homebrew-tap-formula`](spike-homebrew-tap-formula.md) |
-| 2 | Extension co-install | open | **Spike:** [`spike-extension-coinstall`](spike-extension-coinstall.md) — architecture change allowed |
-| 3 | Platforms in v1 | open | macOS arm64/amd64 required; Linuxbrew optional |
-| 4 | Tap automation | open | Manual formula bump on release vs script/CI that opens a PR on the tap repo when `v*` tags publish |
+| 1 | Tap + formula shape | locked | Implement via [`homebrew-tap-cask`](homebrew-tap-cask.md): shared tap + **cask**; Release darwin assets; macOS brew only; automate bump like SM. |
+| 2 | Extension co-install | open | **Spike:** [`spike-extension-coinstall`](spike-extension-coinstall.md) — architecture change allowed; Mozilla keys block signed XPI only |
+| 3 | Platforms in v1 | locked | macOS arm64/amd64 via cask; Linux = Release binary + docs (no Linuxbrew v1) |
+| 4 | Tap automation | locked | Adapt SM render script + release CI (same as cask OQ5) |
 | 5 | Docs home | open | Primary install story becomes brew; keep from-source + raw Release as fallbacks |
 
 ## Non-goals
@@ -82,22 +83,16 @@ Avoid baking browser automation. Prefer **assisted** install that respects user 
 
 | Task | Role |
 |------|------|
-| [`spike-homebrew-tap-formula`](spike-homebrew-tap-formula.md) | Tap, formula/cask, bottles, platforms |
+| [`homebrew-tap-cask`](homebrew-tap-cask.md) | Implement cask + release bump (ready; not blocked on Mozilla) |
 | [`spike-extension-coinstall`](spike-extension-coinstall.md) | How extensions ship with / beside the app |
 
 ```mermaid
 flowchart TB
-  subgraph spikes [Spikes first]
-    F[spike-homebrew-tap-formula]
-    E[spike-extension-coinstall]
-  end
-  subgraph ship [Then implement]
-    T[Tap + formula]
-    C[CLI / share co-install]
-    D[Docs + release bump process]
-  end
-  F --> T
+  Cask[homebrew-tap-cask]
+  E[spike-extension-coinstall]
+  D[Docs + caveats]
+  C[CLI / share co-install]
+  Cask --> D
   E --> C
-  T --> D
   C --> D
 ```

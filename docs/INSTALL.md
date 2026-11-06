@@ -1,17 +1,18 @@
 # Install
 
-Install TicketMosquito from a GitHub Release when tags are published via CI.
+## macOS (Homebrew)
 
-Until the first release, use **[Install from source](INSTALL-FROM-SOURCE.md)**.
+```sh
+brew install --cask infomosquitos/tap/ticketmosquito
+```
 
-## Requirements
+That installs the `ticketmosquito` binary on your `PATH`. Homebrew does **not** install the browser extension — see caveats after install, or [Extension install](guides/extension-install.md).
 
-- A release asset for your OS/arch (`ticketmosquito-*`)
-- Firefox or Chrome (for the Ticket Mosquito extension)
+Tap: [`infomosquitos/homebrew-tap`](https://github.com/infomosquitos/homebrew-tap). The cask is updated automatically on each stable `v*` release.
 
-## Binary
+## GitHub Release binary
 
-1. Download the binary for your platform and optionally `SHA256SUMS` from the release.
+1. Download the binary for your platform and optionally `SHA256SUMS` from the [Releases](https://github.com/infomosquitos/ticketmosquito/releases) page.
 2. Verify the checksum against `SHA256SUMS`.
 3. Install onto your `PATH` (example for macOS/Linux):
 
@@ -19,6 +20,13 @@ Until the first release, use **[Install from source](INSTALL-FROM-SOURCE.md)**.
 chmod +x ticketmosquito-darwin-arm64
 sudo mv ticketmosquito-darwin-arm64 /usr/local/bin/ticketmosquito
 ```
+
+From source: **[Install from source](INSTALL-FROM-SOURCE.md)**.
+
+## Requirements
+
+- A release asset for your OS/arch (`ticketmosquito-*`), or Homebrew on macOS
+- Firefox or Chrome (for the Ticket Mosquito extension)
 
 ## Browser extension
 

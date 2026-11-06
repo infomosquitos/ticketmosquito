@@ -8,8 +8,9 @@ Default API/MCP listen: **`127.0.0.1:11043`**.
 
 ## Install
 
-- **[Install from source](docs/INSTALL-FROM-SOURCE.md)** — build with Go and npm (primary path today)
-- **[Install](docs/INSTALL.md)** — GitHub Release binaries + extension packages (when a tagged release exists)
+- **macOS (Homebrew):** `brew install --cask infomosquitos/tap/ticketmosquito`
+- **[Install](docs/INSTALL.md)** — Homebrew details, GitHub Release binaries + extension packages
+- **[Install from source](docs/INSTALL-FROM-SOURCE.md)** — build with Go and npm
 
 ## First run
 

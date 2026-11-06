@@ -1,25 +1,24 @@
 # Status
 
-Last updated: 2026-10-19
+Last updated: 2026-11-06
 
 ## Current focus
 
-Post-MVP — TS7 extension toolchain shipped; Homebrew spikes still open.
+Cutting **v0.2.0** with Homebrew cask automation (`homebrew-tap-cask`).
 
 ## Active task
 
-_None — next candidate: `spike-homebrew-tap-formula` / `spike-extension-coinstall`, or cut v0.1.0._
+`homebrew-tap-cask` — in progress (script + release job landed; awaiting tag/CI/smoke).
 
 ## Blockers
 
-Parent `homebrew-tap-distribution` blocked_by both spikes (OQs open).
+- **Mozilla AMO/signing keys** — only for durable Firefox XPI / finishing `spike-extension-coinstall`. Does **not** block the cask.
 
 ## Next action
 
-Run Homebrew spikes, or cut v0.1.0 / commit pending work as user directs.
+Push `v0.2.0`, confirm Release + tap update, smoke `brew install --cask infomosquitos/tap/ticketmosquito`.
 
 ## Session notes
 
-- Shipped `upgrade-extensions-typescript-7`: both extensions use `tsc --noEmit` + esbuild on TypeScript 7; webpack/ts-loader removed; `engines.node` >=16.20; docs updated.
-- `Extension Build` CI already covers Dependabot npm bumps.
-- Homebrew spikes / v0.1.0 still open.
+- `scripts/render-homebrew-cask.sh` + `homebrew` job in `release.yml`.
+- Docs point at brew as primary macOS install; Firefox caveat remains temporary/unsigned zip.

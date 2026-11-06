@@ -30,7 +30,7 @@ Optionally promote finished task docs via [CLEANUP.md](CLEANUP.md).
 ## Execute the release
 
 1. Commit changelog (and any version bumps).
-2. Tag and push — CI [`.github/workflows/release.yml`](../.github/workflows/release.yml) builds binaries + extension zips and publishes a GitHub Release:
+2. Tag and push — CI [`.github/workflows/release.yml`](../.github/workflows/release.yml) builds binaries + extension zips, publishes a GitHub Release, and (for stable tags without `-`) updates `Casks/ticketmosquito.rb` on [`infomosquitos/homebrew-tap`](https://github.com/infomosquitos/homebrew-tap) via `HOMEBREW_TAP_TOKEN`:
 
 ```sh
 git commit -m "Release X.Y.Z"
@@ -43,6 +43,8 @@ Local dry-run without tagging:
 ```sh
 ./scripts/build-release.sh vX.Y.Z
 ls dist/
+# optional: render cask from dist/SHA256SUMS
+./scripts/render-homebrew-cask.sh vX.Y.Z dist/SHA256SUMS
 ```
 
 Version is stamped into the binary via `-ldflags` → `internal/cliapp.Version`.
