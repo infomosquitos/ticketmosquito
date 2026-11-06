@@ -4,21 +4,21 @@ Last updated: 2026-11-06
 
 ## Current focus
 
-Post-MVP — Firefox AMO signing wired; cutting **v0.2.1** to publish the first `.xpi`.
+Post-MVP — signed Firefox XPI shipping; co-install spike is the remaining distribution UX work.
 
 ## Active task
 
-Firefox XPI signing in release CI (in progress → verify on v0.2.1).
+_None — next candidate: `spike-extension-coinstall` (ready)._
 
 ## Blockers
 
-_None for signed Firefox XPI._ `spike-extension-coinstall` (assisted CLI / share layout) remains open product work, not blocked on Mozilla keys.
+_None._
 
 ## Next action
 
-Confirm v0.2.1 Release includes `ticketmosquito-firefox-v0.2.1.xpi`, then resume co-install spike design if desired.
+Design/lock co-install spike OQs (CLI + on-disk layout); parent `homebrew-tap-distribution` waits on that.
 
 ## Session notes
 
-- Ported SM `web-ext sign` into `scripts/build-extension-zips.sh`; release job sets `REQUIRE_FIREFOX_XPI=1` + AMO secrets.
-- AMO secrets were already on the repo; gecko id `ticket@mosqui.to` already in the Firefox manifest.
+- [v0.2.1](https://github.com/infomosquitos/ticketmosquito/releases/tag/v0.2.1): AMO-signed `ticketmosquito-firefox-v0.2.1.xpi` + chrome zip; tap caveats updated.
+- Mozilla keys were already present; only the SM-style `web-ext sign` path was missing.
