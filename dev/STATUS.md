@@ -4,21 +4,21 @@ Last updated: 2026-11-06
 
 ## Current focus
 
-Cutting **v0.2.0** with Homebrew cask automation (`homebrew-tap-cask`).
+Post-MVP — Homebrew cask shipped in **v0.2.0**; co-install spike still blocked on Mozilla keys.
 
 ## Active task
 
-`homebrew-tap-cask` — in progress (script + release job landed; awaiting tag/CI/smoke).
+_None — next candidate: `spike-extension-coinstall` (blocked on Mozilla AMO/signing keys)._
 
 ## Blockers
 
-- **Mozilla AMO/signing keys** — only for durable Firefox XPI / finishing `spike-extension-coinstall`. Does **not** block the cask.
+- **Mozilla AMO/signing keys** — durable Firefox XPI / finishing `spike-extension-coinstall`. Cask already ships with temporary Firefox load caveats.
 
 ## Next action
 
-Push `v0.2.0`, confirm Release + tap update, smoke `brew install --cask infomosquitos/tap/ticketmosquito`.
+When Mozilla keys are available: finish `spike-extension-coinstall` (parent `homebrew-tap-distribution` still open).
 
 ## Session notes
 
-- `scripts/render-homebrew-cask.sh` + `homebrew` job in `release.yml`.
-- Docs point at brew as primary macOS install; Firefox caveat remains temporary/unsigned zip.
+- Shipped `homebrew-tap-cask`: render script, release `homebrew` job, tap README row.
+- [v0.2.0](https://github.com/infomosquitos/ticketmosquito/releases/tag/v0.2.0) published (binaries + chrome/firefox zips); tap cask + `brew install --cask infomosquitos/tap/ticketmosquito` smoke OK (`ticketmosquito version` → `v0.2.0`).

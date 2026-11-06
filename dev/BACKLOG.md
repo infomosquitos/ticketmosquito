@@ -104,11 +104,11 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 - notes: Cask shape locked; co-install spike still open. Mozilla keys block signed Firefox XPI only — not the cask itself.
 
 ## homebrew-tap-cask
-- status: in_progress
+- status: done
 - parent: homebrew-tap-distribution
 - goal: Ship `ticketmosquito` cask on shared `infomosquitos/homebrew-tap` + release automation (former spike).
 - done_when: See `dev/tasks/homebrew-tap-cask.md`.
-- notes: Render script + release job ready; marking done after v0.2.0 smoke install.
+- notes: v0.2.0 + tap automation; brew install smoke OK.
 
 ## spike-extension-coinstall
 - status: blocked

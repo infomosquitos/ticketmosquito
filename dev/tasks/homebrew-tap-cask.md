@@ -1,7 +1,7 @@
 # Ship TicketMosquito Homebrew cask
 
 - **Task ID:** `homebrew-tap-cask`
-- **Status:** in_progress
+- **Status:** done
 - **Parent / blocked by:** parent: `homebrew-tap-distribution`
 - **Renamed from:** `spike-homebrew-tap-formula` (spike complete; this is the implementation task)
 
@@ -46,10 +46,10 @@ Extensions are **not** installed by brew. Caveats (and later `spike-extension-co
 
 ## Done when
 
-- [ ] `Casks/ticketmosquito.rb` lives on `infomosquitos/homebrew-tap` and installs via brew for arm64/amd64.
-- [ ] Release automation updates version/sha256 (no hand-edit of the cask).
-- [ ] Caveats cover init, serve, extension load from Release (honest about Firefox until XPI).
-- [ ] Docs list brew as a primary install path.
+- [x] `Casks/ticketmosquito.rb` lives on `infomosquitos/homebrew-tap` and installs via brew for arm64/amd64.
+- [x] Release automation updates version/sha256 (no hand-edit of the cask).
+- [x] Caveats cover init, serve, extension load from Release (honest about Firefox until XPI).
+- [x] Docs list brew as a primary install path.
 
 ## Notes
 
