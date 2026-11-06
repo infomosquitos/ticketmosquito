@@ -98,10 +98,10 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 
 ## homebrew-tap-distribution
 - status: backlog
-- blocked_by: homebrew-tap-cask, spike-extension-coinstall
+- blocked_by: spike-extension-coinstall
 - goal: Custom Homebrew tap so macOS users get the binary plus a clear extension co-install path.
 - done_when: See `dev/tasks/homebrew-tap-distribution.md`.
-- notes: Cask shape locked; co-install spike still open. Mozilla keys block signed Firefox XPI only — not the cask itself.
+- notes: Cask shipped in v0.2.0; signed Firefox XPI in v0.2.1. Parent waits on co-install spike (assisted UX).
 
 ## homebrew-tap-cask
 - status: done
@@ -111,11 +111,11 @@ Detail lives in `dev/tasks/<task-id>.md` when needed.
 - notes: v0.2.0 + tap automation; brew install smoke OK.
 
 ## spike-extension-coinstall
-- status: blocked
+- status: ready
 - parent: homebrew-tap-distribution
 - goal: Recommend how Chrome/Firefox extensions ship with the app without silent browser install.
 - done_when: See `dev/tasks/spike-extension-coinstall.md`.
-- notes: Architecture changes (CLI, share/, data-dir) allowed. Blocked on Mozilla AMO/signing keys for durable Firefox XPI.
+- notes: Architecture changes (CLI, share/, data-dir) allowed. Durable Firefox XPI now ships from release CI; spike is assisted install UX.
 
 ## upgrade-extensions-typescript-7
 - status: done

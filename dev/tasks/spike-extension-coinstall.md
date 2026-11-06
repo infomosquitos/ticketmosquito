@@ -1,7 +1,7 @@
 # Spike: Co-install browser extensions with the app
 
 - **Task ID:** `spike-extension-coinstall`
-- **Status:** backlog
+- **Status:** ready
 - **Parent / blocked by:** parent: `homebrew-tap-distribution`
 
 ## Problem
@@ -18,7 +18,7 @@ Recommend an architecture so that after installing the app (brew or release), ge
 |---|--------|--------|----------|
 | 1 | Source of extension bits | open | A) Same GitHub Release zip as CI; B) `go:embed` / data-dir copy from formula `share/`; C) both (brew ships share/, CLI can also download matching version) |
 | 2 | Assisted install UX | open | Prefer CLI e.g. `ticketmosquito extension install chrome\|firefox` that: materializes files, prints path, copies to clipboard, optionally opens browser chrome:// / about: pages — user still clicks Load unpacked / Install from file |
-| 3 | Firefox persistence | open | Require **signed AMO XPI** for non-temporary install, or accept temporary + docs for now? **Blocked:** Mozilla add-on / signing credentials not available yet — pause durable Firefox path until keys exist. |
+| 3 | Firefox persistence | locked | **Signed AMO XPI** on Releases (`web-ext sign` unlisted, same as SM). Temporary load remains for local/dev builds only. |
 | 4 | Chrome persistence | open | Unpacked from `~/.ticketmosquito/extensions/chrome` (survives restarts if folder stable) vs CRX + private update URL (heavier) |
 | 5 | Version skew | open | Extension package version must match binary (`version` / User-Agent / `/health`?) — warn on mismatch? |
 | 6 | Architecture change OK? | open | Allow new CLI + formula `share/` layout; defer `.app` / Native Messaging host unless spike proves necessary |
@@ -55,7 +55,7 @@ flowchart LR
 ```
 
 - **Chrome:** no silent install from Homebrew. Stable **unpacked** directory is the practical path; user enables Developer mode once and Load unpacked pointing at that dir.
-- **Firefox:** temporary add-on dies on restart; **signed XPI** is the durable path (needs AMO credentials in CI — already anticipated in release docs).
+- **Firefox:** temporary add-on dies on restart; **signed XPI** is the durable path (release CI signs via AMO unlisted).
 - Brew may copy zips into `$(brew --prefix)/share/ticketmosquito/`; the **CLI** should copy/unpack into a user-owned path so upgrades don’t break Load unpacked paths mid-session.
 
 ### Architecture options (allowed changes)

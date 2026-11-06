@@ -30,10 +30,10 @@ From source: **[Install from source](INSTALL-FROM-SOURCE.md)**.
 
 ## Browser extension
 
-Each release may include:
+Each release includes:
 
 - `ticketmosquito-chrome-*.zip` — Chrome unpacked package
-- `ticketmosquito-firefox-*.zip` — Firefox package (unsigned unless AMO signing is configured)
+- `ticketmosquito-firefox-*.xpi` — Firefox add-on signed via AMO (unlisted)
 
 ### Chrome
 
@@ -42,9 +42,11 @@ Each release may include:
 
 ### Firefox
 
-For unsigned builds, use temporary load from a source build (`about:debugging`) —
-see [Extension install](guides/extension-install.md). Signed `.xpi` installs (persistent)
-require AMO credentials in the release pipeline.
+1. Download `ticketmosquito-firefox-*.xpi` from the release.
+2. Open `about:addons` → gear icon → **Install Add-on From File…** → select the `.xpi`.
+
+For local development builds, use temporary load instead —
+see [Extension install](guides/extension-install.md).
 
 ## Next steps
 

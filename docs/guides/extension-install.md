@@ -23,6 +23,12 @@ Output is under `dist/`. Or from the repo root: `make build-extensions`.
 
 ## Firefox
 
+**Release (persistent):** download `ticketmosquito-firefox-*.xpi` from a
+[GitHub Release](https://github.com/infomosquitos/ticketmosquito/releases), then
+`about:addons` → gear → **Install Add-on From File…**.
+
+**From source (temporary; reloads after browser restart):**
+
 1. Open `about:debugging#/runtime/this-firefox`
 2. **Load Temporary Add-on…** → select `firefox-extension/dist/manifest.json`
 3. Open a Jira tab and click the extension icon

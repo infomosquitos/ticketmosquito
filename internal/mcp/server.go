@@ -130,7 +130,7 @@ func (s *Server) dispatch(req *MCPRequest) *MCPResponse {
 			},
 			"serverInfo": map[string]interface{}{
 				"name":    "TicketMosquito",
-				"version": "0.2.0",
+				"version": "0.2.1",
 			},
 		})
 	case "notifications/initialized":

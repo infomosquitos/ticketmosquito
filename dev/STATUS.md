@@ -4,21 +4,21 @@ Last updated: 2026-11-06
 
 ## Current focus
 
-Post-MVP — Homebrew cask shipped in **v0.2.0**; co-install spike still blocked on Mozilla keys.
+Post-MVP — Firefox AMO signing wired; cutting **v0.2.1** to publish the first `.xpi`.
 
 ## Active task
 
-_None — next candidate: `spike-extension-coinstall` (blocked on Mozilla AMO/signing keys)._
+Firefox XPI signing in release CI (in progress → verify on v0.2.1).
 
 ## Blockers
 
-- **Mozilla AMO/signing keys** — durable Firefox XPI / finishing `spike-extension-coinstall`. Cask already ships with temporary Firefox load caveats.
+_None for signed Firefox XPI._ `spike-extension-coinstall` (assisted CLI / share layout) remains open product work, not blocked on Mozilla keys.
 
 ## Next action
 
-When Mozilla keys are available: finish `spike-extension-coinstall` (parent `homebrew-tap-distribution` still open).
+Confirm v0.2.1 Release includes `ticketmosquito-firefox-v0.2.1.xpi`, then resume co-install spike design if desired.
 
 ## Session notes
 
-- Shipped `homebrew-tap-cask`: render script, release `homebrew` job, tap README row.
-- [v0.2.0](https://github.com/infomosquitos/ticketmosquito/releases/tag/v0.2.0) published (binaries + chrome/firefox zips); tap cask + `brew install --cask infomosquitos/tap/ticketmosquito` smoke OK (`ticketmosquito version` → `v0.2.0`).
+- Ported SM `web-ext sign` into `scripts/build-extension-zips.sh`; release job sets `REQUIRE_FIREFOX_XPI=1` + AMO secrets.
+- AMO secrets were already on the repo; gecko id `ticket@mosqui.to` already in the Firefox manifest.

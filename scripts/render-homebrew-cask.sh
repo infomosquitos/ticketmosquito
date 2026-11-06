@@ -68,15 +68,13 @@ cask "ticketmosquito" do
 
     3. Install the browser extension (Homebrew cannot do this for you).
        Download it from https://github.com/infomosquitos/ticketmosquito/releases/tag/v#{version}
+         Firefox: ticketmosquito-firefox-v#{version}.xpi
+                  about:addons -> gear icon -> Install Add-on From File...
          Chrome:  ticketmosquito-chrome-v#{version}.zip, unzip it into a folder you keep:
                     mkdir -p ~/Applications/TicketMosquito-Chrome
                     unzip -o ~/Downloads/ticketmosquito-chrome-v#{version}.zip -d ~/Applications/TicketMosquito-Chrome
                   chrome://extensions -> Developer mode -> Load unpacked ->
                   select that folder (not the .zip)
-         Firefox: ticketmosquito-firefox-v#{version}.zip (unsigned until AMO signing ships).
-                  Unzip, then about:debugging#/runtime/this-firefox ->
-                  Load Temporary Add-on… -> select that folder's manifest.json
-                  (temporary; reloads after browser restart).
        Details: https://github.com/infomosquitos/ticketmosquito/blob/main/docs/guides/extension-install.md
 
     4. Log in to Jira, open the Ticket Mosquito extension popup and click

@@ -4,6 +4,16 @@ All notable changes to this project. Format based on [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-06
+
+### Added
+
+- Signed Firefox `.xpi` on Releases via AMO unlisted signing (same path as SpaceMosquito).
+
+### Changed
+
+- Homebrew caveats and install docs point at the `.xpi` for Firefox.
+
 ## [0.2.0] - 2026-11-06
 
 ### Added
